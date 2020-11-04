@@ -163,6 +163,8 @@ class FileParser(metaclass=ParserMount):
 # ! DEPRECATE
 class ReportServer:
 
+    # TODO run server in separate thread, cache the progress and only connect
+    # TODO and send when requested from GUI
     def __init__(self, session_id: str) -> None:
         self.address = PROGRES_SOCKET.format(session_id)
         self.server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
