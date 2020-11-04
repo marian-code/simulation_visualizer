@@ -1,8 +1,6 @@
 import abc
 import concurrent.futures as cf
 import logging
-import os
-import socket
 from contextlib import contextmanager
 from pathlib import Path
 from socket import gethostname
@@ -23,7 +21,6 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 MAX_PARSE_ATTEMPTS: int = 5
-PROGRES_SOCKET = "/tmp/user-{}-progress"
 
 
 class ParserMount(type):
@@ -41,7 +38,7 @@ class ParserMount(type):
     @property
     def parsers(cls) -> List["FileParser"]:
         """Read-only attribute containing all available parsers.
-        
+
         :type: .FileParser
         """
         return cls._parsers
@@ -66,7 +63,6 @@ class FileParser(metaclass=ParserMount):
     header: "Pattern"
     parsers: List["FileParser"]
     session_id: str
-    _last_done: float = 0.0
 
     @classmethod
     @contextmanager
@@ -85,10 +81,7 @@ class FileParser(metaclass=ParserMount):
             if copy_method:
                 with Connection(host, local=local, quiet=True) as c:
                     with TemporaryDirectory() as td:
-                        cls._last_done = 0.0
-                        c.shutil.copy(path, td, direction="get",
-                                      callback=cls.progress)
-                        cls.progress(100, 100) # fail safe
+                        c.shutil.copy(path, td, direction="get")
                         with (Path(td) / Path(path).name).open("r") as fileobj:
                             try:
                                 yield fileobj
@@ -102,16 +95,6 @@ class FileParser(metaclass=ParserMount):
                             yield fileobj
                         finally:
                             pass
-
-    @classmethod
-    def progress(cls, done: float, total: float, report_every: int = 10):
-        done_percent = 100 * done / total
-        if done_percent - cls._last_done > report_every or done_percent == 100:
-            cls._last_done = done_percent
-            log.debug(f"percent done: {done_percent:>6.2f}, writing progress "
-                      f"file: {PROGRES_SOCKET.format(cls.session_id)}")
-            with open(PROGRES_SOCKET.format(cls.session_id), "w") as f:
-                f.write(str(done_percent))
 
     @classmethod
     def set_session_id(cls, session_id: str):
@@ -158,35 +141,6 @@ class FileParser(metaclass=ParserMount):
 
     def __str__(self):
         return f"<Parser {self.name}>"
-
-
-# ! DEPRECATE
-class ReportServer:
-
-    def __init__(self, session_id: str) -> None:
-        self.address = PROGRES_SOCKET.format(session_id)
-        self.server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.server.bind(self.address)
-        self.server.listen()
-        log.debug("created server, waiting for client to connect")
-        self.sock, _ = self.server.accept()
-
-        self._last_done = 0.0
-
-    def __enter__(self):
-        self._last_done = 0.0
-        return self
-
-    def __exit__(self, *args):
-        log.debug("closing server socket")
-        self.sock.close()
-
-    def progress(self, done: float, total: float, send_every_perc: int = 1):
-        done_percent = 100 * done / total
-        if done_percent - self._last_done > send_every_perc:
-            log.debug(f"sending message to client: {done_percent}")
-            self._last_done = done_percent
-            self.sock.sendall(str(done_percent).encode())
 
 
 class DataExtractor:

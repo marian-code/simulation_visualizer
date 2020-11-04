@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Dict, List, Union
 
 from ssh_utilities import Connection
 
-from simulation_progress.suggestion_server.client import \
+from simulation_visualizer.suggestion_server.client import \
     connect_to_suggestion_server
 
 if TYPE_CHECKING:

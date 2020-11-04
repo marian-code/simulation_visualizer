@@ -2,7 +2,7 @@ import re
 from typing import IO, List, Optional
 
 import pandas as pd
-from simulation_progress.parser import FileParser
+from simulation_visualizer.parser import FileParser
 
 
 class DeepMDTrainParser(FileParser):

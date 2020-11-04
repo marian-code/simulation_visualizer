@@ -8,23 +8,20 @@ from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 from uuid import uuid4
 
 import dash
-import dash_bootstrap_components as dbc
-from multiprocessing import Process
 import dash_core_components as dcc
-from dash_core_components.Loading import Loading
 import dash_html_components as html
 import plotly.express as px
 import plotly.graph_objects as go
 from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
 from dash_extensions import Download
 from flask_caching import Cache
 from ssh_utilities import Connection
-from dash.exceptions import PreventUpdate
 from typing_extensions import Literal
 
-from simulation_progress.parser import DataExtractor, PROGRES_SOCKET
-from simulation_progress.path_completition import Suggest
-from simulation_progress.utils import get_file_size, input_parser, sizeof_fmt, timeit
+from simulation_visualizer.parser import DataExtractor
+from simulation_visualizer.path_completition import Suggest
+from simulation_visualizer.utils import get_file_size, input_parser, sizeof_fmt
 
 if TYPE_CHECKING:
     _DS = Dict[str, str]
@@ -172,10 +169,6 @@ def serve_layout():
 
             # * right column with graph and progressbar
             html.Div([
-                dcc.Interval(id="progress-interval", n_intervals=0,
-                             interval=50, disabled=True),
-                html.P(id='plot-loading', style={'color': 'red'}),
-                #dbc.Progress(id="progress", striped=True, animated=True),
                 dcc.Loading(
                     id="loading-plot", type="default",
                     children=[html.Div(dcc.Graph(id='plot-graph'))]
@@ -187,54 +180,11 @@ def serve_layout():
         html.Hr(),
         html.P(children=f"Currently available parsers are: "
                f"{', '.join(PARSERS)}"),
-
-        html.P(id='progress-switch', children="loading", style={'display': 'none'}),
     ])
 
 
 app.layout = serve_layout
 
-
-@app.callback(
-    #[Output("progress", "value"), Output("progress", "children"),
-    [Output('plot-loading', 'children'),
-     Output("progress-interval", "disabled"),
-     Output("progress-switch", "children")],
-    [Input("progress-interval", "n_intervals"),
-     Input('plot-button-state', 'n_clicks'), Input('session-id', 'children')],
-    [State("progress-interval", "disabled")],
-    prevent_initial_call=True
-)
-def update_progress(interv, btn, session_id: str, diss):
-
-    #trg = dash.callback_context
-
-    #print(f"progressbar running, triggered by: {trg}")
-    print("input:", interv, btn, diss)
-    try:
-        with open(PROGRES_SOCKET.format(session_id), "r") as f:
-            progress = float(f.read())
-    except FileNotFoundError as e:
-        print(f"progressbar on input, {e}")
-        progress_str = dash.no_update
-        prog_bar_disable = False
-        loading_state = dash.no_update
-    except Exception as e:
-        log.exception(f"unhandled exception un progressbar update: {e}")
-    else:
-        print(f"loading done: {progress}%")
-        # only add text after 5% progress to ensure text isn't squashed too much
-        progress_str = f"loading {progress} %" if progress >= 10 else ""
-
-        if progress >= 100:
-            prog_bar_disable = True
-            loading_state = "done"
-        else:
-            prog_bar_disable = False
-            loading_state = dash.no_update
-    finally:
-        print(progress_str, prog_bar_disable, loading_state)
-        return progress_str, prog_bar_disable, loading_state
 
 # TODO implement every n-th row save and plot
 @app.callback(
@@ -267,53 +217,34 @@ def download_data(_, session_id: str, x_select: str,
 
 @app.callback(
     [Output('plot-graph', 'figure'), Output('plot-error', 'children')],
-    [Input('plot-button-state', 'n_clicks'), Input('session-id', 'children'),
-     Input('progress-switch', "children")],
+    [Input('plot-button-state', 'n_clicks'), Input('session-id', 'children')],
     [State('x-select', 'value'), State('y-select', 'value'),
      State('z-select', 'value'), State('input-host', 'value'),
      State('input-path', 'value'), State('dimensionality-state', 'value'),
      State('plot-type', 'value')],
     prevent_initial_call=True
 )
-def update_figure(_, session_id: str, ps, x_select: str,
+def update_figure(_, session_id: str, x_select: str,
                   y_select: Union[str, List[str]], z_select: str, host: str,
                   path: str, dimension: Literal["2D", "3D"], plot_type: str,
                   ) -> Tuple[Any, str]:
 
-    print("prog sw --------------------------------->", ps)
-
-    triggered = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-
-    log.info(f"requested plot type is: {plot_type}")
-    print(f"triggering event is: {triggered}")
-    print(f"session id is: {session_id}")
-
-    if triggered == 'plot-button-state':
-        print("starting backround dafaframe download process, progress "
-                  "will be reported in GUI")
-
-        Process(target=df_cache, args=(path, host, session_id),
-                name="async_df_downloader", daemon=True).start()
-
-        return dash.no_update, dash.no_update
-    elif not path:
+    if not path:
         raise PreventUpdate()
+
+    df = df_cache(path, host, session_id)
+
+    if not isinstance(df, Exception):
+
+        fig = get_fig(df, x_select, y_select, z_select, plot_type, dimension,
+                      host, path)
+        warning = ""
     else:
-        print("dataframe downloaded in background, retrieving from cache")
-        with timeit("get dataframe from cache"):
-            df = df_cache(path, host, session_id)
+        fig = dash.no_update
+        warning = f"Couln't read {host}@{path}.\nError: {df}"
 
-        if not isinstance(df, Exception):
-
-            fig = get_fig(df, x_select, y_select, z_select, plot_type, dimension,
-                        host, path)
-            warning = ""
-        else:
-            fig = dash.no_update
-            warning = f"Couln't read {host}@{path}.\nError: {df}"
-
-        log.debug("figure ready sending to user session")
-        return fig, warning
+    log.debug("figure ready sending to user session")
+    return fig, warning
 
 
 @cache.memoize(timeout=600)
@@ -334,10 +265,10 @@ def get_fig(df: "DataFrame", x_select: str, y_select: str, z_select: str,
 
         if dimension == "2D":
             fig = plot(df, x=x_select, y=y_select,
-                        title=f"Plotting file: {host}@{path}")
+                       title=f"Plotting file: {host}@{path}")
         else:  # 3D
             fig = plot(df, x=x_select, y=y_select, z=z_select,
-                        title=f"Plotting file: {host}@{path}")
+                       title=f"Plotting file: {host}@{path}")
 
     return fig
 
