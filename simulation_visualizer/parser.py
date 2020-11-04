@@ -157,31 +157,30 @@ class DataExtractor:
         self._host = host
         self._session_id = session_id
 
-    def extract(self) -> "DataFrame":
+    def extract(self) -> Union["DataFrame", Exception]:
         with timeit("file read"):
             return self._get_async("data")
 
-    def header(self) -> List[str]:
+    def header(self) -> Union[List[str], Exception]:
         return self._get_async("header")
 
-    def _get_async(self, what: Literal["data", "header"]) -> Union["DataFrame",
-                                                                   List[str]]:
+    def _get_async(self, what: Literal["data", "header"]
+                   ) -> Union["DataFrame", List[str], Exception]:
 
         with cf.ThreadPoolExecutor(max_workers=len(self.parsers)) as executor:
             future_to_df = {
                 executor.submit(self._get_one, p, what): p for p in self.parsers
             }
-            df = None
             for future in cf.as_completed(future_to_df):
 
-                df, error = future.result()
+                data, error = future.result()
                 if error is None:
                     executor.shutdown(wait=False)
-                    return df
+                    return data
             else:
                 log.exception(f"None of the data parsers could extract "
                               f"{self._path}")
-                return df
+                return error
 
     def _get_one(self, parser: FileParser, what: Literal["data", "header"]
                  ) -> Tuple[Optional[Exception],

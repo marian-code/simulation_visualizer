@@ -94,9 +94,9 @@ def serve_layout():
             ], className="six columns")
         ], className="row"),
         html.Div(id="show-path"),
-        html.Div(id="show-filesize"),
         html.Button(id='submit-button', n_clicks=0,
                     children='Submit'),
+        html.Div(id="show-filesize"),
         html.Hr(),
 
         html.H3(children="Graph controls"),
@@ -277,7 +277,7 @@ def get_fig(df: "DataFrame", x_select: str, y_select: str, z_select: str,
     [Output('x-select', 'options'), Output('y-select', 'options'),
      Output('z-select', 'options'), Output('x-select', 'value'),
      Output('y-select', 'value'), Output('z-select', 'value'),
-     Output("show-filesize", "children")],
+     Output("show-filesize", "children"), Output("show-filesize", "style")],
     [Input('submit-button', 'n_clicks'), Input('session-id', 'children')],
     [State('input-host', 'value'), State('input-path', 'value')],
     prevent_initial_call=True
@@ -285,9 +285,8 @@ def get_fig(df: "DataFrame", x_select: str, y_select: str, z_select: str,
 def update_axis_select(_, session_id: str, host: str, path: str
                        ) -> Tuple["_LDS", "_LDS", "_LDS", str, str, str]:
 
-    print
-    options = DataExtractor(path, host, session_id).header()
-    log.debug(f"got axis options: {options}")
+    data = DataExtractor(path, host, session_id).header()
+    log.debug(f"got axis options: {data}")
 
     byte_size = get_file_size(path, host)
     filesize_msg = f"File size is: {sizeof_fmt(byte_size)}"
@@ -297,19 +296,22 @@ def update_axis_select(_, session_id: str, host: str, path: str
 
     log.info(filesize_msg)
 
-    if not isinstance(options, Exception):
-        x_select = options[0]  # first data column
-        y_select = options[1]  # second data column
-        z_select = options[2]  # third data colum
-        options = [{'label': o, 'value': o} for o in options]
+    if not isinstance(data, Exception):
+        x_select = data[0]  # first data column
+        y_select = data[1]  # second data column
+        z_select = data[2]  # third data colum
+        options = [{'label': d, 'value': d} for d in data]
+        style = {}
     else:
         x_select = ""
         y_select = ""
         z_select = ""
+        filesize_msg = str(data)
         options = []
+        style = {"color": "red"}
 
     return (options, options, options, x_select, y_select, z_select,
-            filesize_msg)
+            filesize_msg, style)
 
 
 @app.callback(
