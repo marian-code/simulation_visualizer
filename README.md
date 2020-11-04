@@ -11,6 +11,10 @@ from any servers defined in` ~/.ssh/config file`. Currently supported formats ar
 There is also one example plugin in `parsers` directory showing how should new
 plugins be implemented
 
+# Example
+
+![Alt Text](data/example_colvar.gif)
+
 # TODO
 
 - add progressbar when loading large files
