@@ -3,7 +3,7 @@ from typing import IO, List, Optional
 
 import numpy as np
 import pandas as pd
-from simulation_progress.parser import FileParser
+from simulation_visualizer.parser import FileParser
 import warnings
 
 

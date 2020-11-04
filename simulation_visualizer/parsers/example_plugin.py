@@ -10,7 +10,7 @@ import pandas as pd
 # directly in package dir
 # import sys
 # sys.path.append("/path/to/FileParser")
-from simulation_progress.parser import FileParser
+from simulation_visualizer.parser import FileParser
 
 # all plugin parsers must be subclasses of FileParser and override its two
 # abstract methods, extract_header() and extract_data() overiding other

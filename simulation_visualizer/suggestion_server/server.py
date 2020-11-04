@@ -16,7 +16,7 @@ import sys
 from os import remove
 from typing import TYPE_CHECKING, TypeVar
 
-from simulation_progress.path_completition import Completion
+from simulation_visualizer.path_completition import Completion
 
 SERVER_WAITING_CLIENTS: int = 5
 SOCK_SERVER_TIMEOUT: int = 30
@@ -24,7 +24,7 @@ SOCK_SERVER_TIMEOUT: int = 30
 if TYPE_CHECKING:
     Picklable = TypeVar("Picklable")
 
-log = logging.getLogger("simulation_progress.suggestion_server")
+log = logging.getLogger("simulation_visualizer.suggestion_server")
 logging.getLogger("paramiko").setLevel(logging.WARNING)
 logging.getLogger("ssh_utilities").setLevel(logging.WARNING)
 

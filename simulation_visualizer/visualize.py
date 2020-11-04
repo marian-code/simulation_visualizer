@@ -22,9 +22,9 @@ from ssh_utilities import Connection
 from dash.exceptions import PreventUpdate
 from typing_extensions import Literal
 
-from simulation_progress.parser import DataExtractor, PROGRES_SOCKET
-from simulation_progress.path_completition import Suggest
-from simulation_progress.utils import get_file_size, input_parser, sizeof_fmt, timeit
+from simulation_visualizer.parser import DataExtractor, PROGRES_SOCKET
+from simulation_visualizer.path_completition import Suggest
+from simulation_visualizer.utils import get_file_size, input_parser, sizeof_fmt, timeit
 
 if TYPE_CHECKING:
     _DS = Dict[str, str]
