@@ -13,7 +13,7 @@ plugins be implemented
 
 # Example
 
-![Alt Text](https://gitlab.dep.fmph.uniba.sk/rynik/simulation_visualizer/tree/master/data/example_colvar.gif)
+![Alt Text](data/example_colvar.gif)
 
 # TODO
 
