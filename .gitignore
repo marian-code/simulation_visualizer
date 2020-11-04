@@ -6,3 +6,4 @@ dist/
 simulation_visualizer.egg-info/
 docs/build/
 docs/source/_*
+**/simulation_visualizer/logs/*
