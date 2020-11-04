@@ -1,0 +1,16 @@
+[2020-11-04 15:14:49,183] DEBUG   simulation_progress.suggestion_server         creating socket
+[2020-11-04 15:14:49,183] DEBUG   simulation_progress.suggestion_server         binding addres to: /tmp/user-94d5039a-e9fd-4220-91c1-cc733d3a0422-suggestion_server
+[2020-11-04 15:14:49,183] DEBUG   simulation_progress.suggestion_server         max requests: 5
+[2020-11-04 15:14:49,183] DEBUG   simulation_progress.suggestion_server         set to accept connections
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server         started suggestion server
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.path_completition         initalized completion class
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server         entering loop
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server         receiving data length
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server         data length is: 72
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server         receiving actual data
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server         got data: ('get_dirs', {'host': 'kohn', 'input_path': ''})
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server         found function: <bound method Completion.get_dirs of <simulation_progress.path_completition.Completion object at 0x7fecff15ed90>>
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server         sending answer to client
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server         sending data from sercer to client: ['/home/']
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server         receiving data length
+[2020-11-04 15:15:19,205] DEBUG   simulation_progress.suggestion_server         exiting

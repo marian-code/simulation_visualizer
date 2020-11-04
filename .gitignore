@@ -1,0 +1,8 @@
+**/__pycache__/
+**/.vscode/
+**/.mypy_cache/
+build/
+dist/
+simulation_visualizer.egg-info/
+docs/build/
+docs/source/_*

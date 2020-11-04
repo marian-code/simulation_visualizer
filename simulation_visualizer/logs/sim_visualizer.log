@@ -1,0 +1,132 @@
+[2020-11-04 15:14:48,229] INFO    __main__                                      removing old suggestion server logs
+[2020-11-04 15:14:49,057] INFO    __main__                                      unique user session id is: 94d5039a-e9fd-4220-91c1-cc733d3a0422
+[2020-11-04 15:14:49,058] DEBUG   simulation_progress.path_completition         built autocomplete function arguments: {'host': 'kohn', 'input_path': ''}
+[2020-11-04 15:14:49,058] DEBUG   simulation_progress.path_completition         requesting function: get_dirs
+[2020-11-04 15:14:49,058] DEBUG   simulation_progress.suggestion_server.client  logging for server is set to: 10
+[2020-11-04 15:14:49,058] DEBUG   simulation_progress.suggestion_server.client  creating socket
+[2020-11-04 15:14:49,058] DEBUG   simulation_progress.suggestion_server.client  attempting to connect to server
+[2020-11-04 15:14:49,058] WARNING simulation_progress.suggestion_server.client  connection refused
+[2020-11-04 15:14:49,058] WARNING simulation_progress.suggestion_server.client  server not running, starting...
+[2020-11-04 15:14:49,058] DEBUG   simulation_progress.suggestion_server.client  removing socket file
+[2020-11-04 15:14:49,058] DEBUG   simulation_progress.suggestion_server.client  spawnig server process
+[2020-11-04 15:14:49,064] DEBUG   simulation_progress.suggestion_server.client  waiting until server creates socket file
+[2020-11-04 15:14:49,183] DEBUG   simulation_progress.suggestion_server.client  creating socket
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server.client  attempting to connect to server
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server.client  succesfully connected to server
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server.client  sending data from sercer to client: ('get_dirs', {'host': 'kohn', 'input_path': ''})
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server.client  receiving data length
+[2020-11-04 15:14:49,184] DEBUG   simulation_progress.suggestion_server.client  data length is: 20
+[2020-11-04 15:14:49,185] DEBUG   simulation_progress.suggestion_server.client  receiving actual data
+[2020-11-04 15:14:49,185] DEBUG   simulation_progress.suggestion_server.client  got data: ['/home/']
+[2020-11-04 15:14:51,955] INFO    __main__                                      unique user session id is: 21563c92-7aa6-4d0a-a825-fd8b227b7232
+[2020-11-04 15:14:51,955] DEBUG   simulation_progress.path_completition         built autocomplete function arguments: {'host': 'kohn', 'input_path': ''}
+[2020-11-04 15:14:51,955] DEBUG   simulation_progress.path_completition         requesting function: get_dirs
+[2020-11-04 15:14:51,955] DEBUG   simulation_progress.suggestion_server.client  logging for server is set to: 10
+[2020-11-04 15:14:51,955] DEBUG   simulation_progress.suggestion_server.client  creating socket
+[2020-11-04 15:14:51,955] DEBUG   simulation_progress.suggestion_server.client  attempting to connect to server
+[2020-11-04 15:14:51,956] WARNING simulation_progress.suggestion_server.client  connection refused
+[2020-11-04 15:14:51,956] WARNING simulation_progress.suggestion_server.client  server not running, starting...
+[2020-11-04 15:14:51,956] DEBUG   simulation_progress.suggestion_server.client  removing socket file
+[2020-11-04 15:14:51,956] DEBUG   simulation_progress.suggestion_server.client  spawnig server process
+[2020-11-04 15:14:51,961] DEBUG   simulation_progress.suggestion_server.client  waiting until server creates socket file
+[2020-11-04 15:14:52,078] DEBUG   simulation_progress.suggestion_server.client  creating socket
+[2020-11-04 15:14:52,078] DEBUG   simulation_progress.suggestion_server.client  attempting to connect to server
+[2020-11-04 15:14:52,078] DEBUG   simulation_progress.suggestion_server.client  succesfully connected to server
+[2020-11-04 15:14:52,078] DEBUG   simulation_progress.suggestion_server.client  sending data from sercer to client: ('get_dirs', {'host': 'kohn', 'input_path': ''})
+[2020-11-04 15:14:52,078] DEBUG   simulation_progress.suggestion_server.client  receiving data length
+[2020-11-04 15:14:52,078] DEBUG   simulation_progress.suggestion_server.client  data length is: 20
+[2020-11-04 15:14:52,078] DEBUG   simulation_progress.suggestion_server.client  receiving actual data
+[2020-11-04 15:14:52,079] DEBUG   simulation_progress.suggestion_server.client  got data: ['/home/']
+[2020-11-04 15:14:55,522] INFO    __main__                                      unique user session id is: 21563c92-7aa6-4d0a-a825-fd8b227b7232
+[2020-11-04 15:14:55,522] DEBUG   simulation_progress.path_completition         built autocomplete function arguments: {'host': 'kohn', 'input_path': '/home/rynik/Raid/dizertacka/train_Si/ge_DPMD/metad/cd/COLVAR'}
+[2020-11-04 15:14:55,522] DEBUG   simulation_progress.path_completition         requesting function: get_dirs
+[2020-11-04 15:14:55,523] DEBUG   simulation_progress.suggestion_server.client  logging for server is set to: 10
+[2020-11-04 15:14:55,523] DEBUG   simulation_progress.suggestion_server.client  creating socket
+[2020-11-04 15:14:55,523] DEBUG   simulation_progress.suggestion_server.client  attempting to connect to server
+[2020-11-04 15:14:55,523] DEBUG   simulation_progress.suggestion_server.client  succesfully connected to server
+[2020-11-04 15:14:55,523] DEBUG   simulation_progress.suggestion_server.client  sending data from sercer to client: ('get_dirs', {'host': 'kohn', 'input_path': '/home/rynik/Raid/dizertacka/train_Si/ge_DPMD/metad/cd/COLVAR'})
+[2020-11-04 15:14:55,523] DEBUG   simulation_progress.suggestion_server.client  receiving data length
+[2020-11-04 15:14:55,984] DEBUG   simulation_progress.suggestion_server.client  data length is: 74
+[2020-11-04 15:14:55,984] DEBUG   simulation_progress.suggestion_server.client  receiving actual data
+[2020-11-04 15:14:55,984] DEBUG   simulation_progress.suggestion_server.client  got data: ['/home/rynik/Raid/dizertacka/train_Si/ge_DPMD/metad/cd/COLVAR']
+[2020-11-04 15:14:56,526] DEBUG   simulation_progress.parsers                   loading parsers
+[2020-11-04 15:14:56,527] WARNING simulation_progress.parsers                   failed to load plugin example_plugin.py, module is not ready for production. Once ready, remove ImportError exception raise statement
+[2020-11-04 15:14:56,527] DEBUG   simulation_progress.parser                    got parsers: <Parser DeepMDModelDeviationParser>, <Parser PlumedMetaDParser>, <Parser DeepMDTrainParser>, <Parser LammpsMetaDParser>
+[2020-11-04 15:14:56,528] DEBUG   simulation_progress.parser                    trying header parser: <Parser DeepMDModelDeviationParser>
+[2020-11-04 15:14:56,529] DEBUG   simulation_progress.parser                    trying header parser: <Parser PlumedMetaDParser>
+[2020-11-04 15:14:56,529] DEBUG   simulation_progress.parser                    opening new file object
+[2020-11-04 15:14:56,529] DEBUG   simulation_progress.parser                    trying header parser: <Parser DeepMDTrainParser>
+[2020-11-04 15:14:56,529] DEBUG   simulation_progress.parser                    opening new file object
+[2020-11-04 15:14:56,529] DEBUG   simulation_progress.parser                    trying header parser: <Parser LammpsMetaDParser>
+[2020-11-04 15:14:56,530] DEBUG   simulation_progress.parser                    opening new file object
+[2020-11-04 15:14:56,531] DEBUG   simulation_progress.parser                    opening new file object
+[2020-11-04 15:14:56,960] WARNING simulation_progress.parser                    parser <Parser DeepMDModelDeviationParser> cannot handle COLVAR file type
+[2020-11-04 15:14:56,999] INFO    simulation_progress.parser                    parser <Parser PlumedMetaDParser> can handle COLVAR file type
+[2020-11-04 15:14:57,001] DEBUG   simulation_progress.parser                    opening new file object
+[2020-11-04 15:14:57,008] WARNING simulation_progress.parser                    parser <Parser DeepMDTrainParser> cannot handle COLVAR file type
+[2020-11-04 15:14:57,015] WARNING simulation_progress.parser                    parser <Parser LammpsMetaDParser> cannot handle COLVAR file type
+[2020-11-04 15:14:57,387] DEBUG   simulation_progress.parser                    header parsed successfully: /home/rynik/Raid/dizertacka/train_Si/ge_DPMD/metad/cd/COLVAR after 1 attempts
+[2020-11-04 15:14:57,716] INFO    __main__                                      File size is: 111.0MB, plotting and export might take a while
+[2020-11-04 15:14:59,602] INFO    __main__                                      requested plot type is: line
+[2020-11-04 15:14:59,608] DEBUG   simulation_progress.parsers                   loading parsers
+[2020-11-04 15:14:59,609] WARNING simulation_progress.parsers                   failed to load plugin example_plugin.py, module is not ready for production. Once ready, remove ImportError exception raise statement
+[2020-11-04 15:14:59,610] DEBUG   simulation_progress.parser                    got parsers: <Parser DeepMDModelDeviationParser>, <Parser PlumedMetaDParser>, <Parser DeepMDTrainParser>, <Parser LammpsMetaDParser>
+[2020-11-04 15:14:59,611] DEBUG   simulation_progress.parser                    trying data parser: <Parser DeepMDModelDeviationParser>
+[2020-11-04 15:14:59,611] DEBUG   simulation_progress.parser                    trying data parser: <Parser PlumedMetaDParser>
+[2020-11-04 15:14:59,611] DEBUG   simulation_progress.parser                    trying data parser: <Parser DeepMDTrainParser>
+[2020-11-04 15:14:59,611] DEBUG   simulation_progress.parser                    trying data parser: <Parser LammpsMetaDParser>
+[2020-11-04 15:14:59,611] DEBUG   simulation_progress.parser                    opening new file object
+[2020-11-04 15:14:59,612] DEBUG   simulation_progress.parser                    opening new file object
+[2020-11-04 15:14:59,612] DEBUG   simulation_progress.parser                    opening new file object
+[2020-11-04 15:14:59,612] DEBUG   simulation_progress.parser                    opening new file object
+[2020-11-04 15:15:00,016] WARNING simulation_progress.parser                    parser <Parser DeepMDTrainParser> cannot handle COLVAR file type
+[2020-11-04 15:15:00,109] WARNING simulation_progress.parser                    parser <Parser LammpsMetaDParser> cannot handle COLVAR file type
+[2020-11-04 15:15:00,115] INFO    simulation_progress.parser                    parser <Parser PlumedMetaDParser> can handle COLVAR file type
+[2020-11-04 15:15:00,151] WARNING simulation_progress.parser                    parser <Parser DeepMDModelDeviationParser> cannot handle COLVAR file type
+[2020-11-04 15:15:00,737] DEBUG   simulation_progress.parser                    percent done:  10.02, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:00,859] DEBUG   simulation_progress.parser                    percent done:  20.04, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:00,985] DEBUG   simulation_progress.parser                    percent done:  30.06, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:01,124] DEBUG   simulation_progress.parser                    percent done:  40.08, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:01,248] DEBUG   simulation_progress.parser                    percent done:  50.10, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:01,365] DEBUG   simulation_progress.parser                    percent done:  60.11, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:01,488] DEBUG   simulation_progress.parser                    percent done:  70.13, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:01,619] DEBUG   simulation_progress.parser                    percent done:  80.15, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:01,746] DEBUG   simulation_progress.parser                    percent done:  90.17, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:01,908] DEBUG   simulation_progress.parser                    percent done: 100.00, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:01,912] DEBUG   simulation_progress.parser                    percent done: 100.00, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:01,912] DEBUG   simulation_progress.parser                    using passed in file object
+[2020-11-04 15:15:02,894] DEBUG   simulation_progress.parser                    data parsed successfully: /home/rynik/Raid/dizertacka/train_Si/ge_DPMD/metad/cd/COLVAR after 1 attempts
+[2020-11-04 15:15:02,894] DEBUG   simulation_progress.utils                     file read execution time: 3.28s
+[2020-11-04 15:15:02,921] INFO    __main__                                      requested plot type is: line
+[2020-11-04 15:15:02,924] DEBUG   simulation_progress.parsers                   loading parsers
+[2020-11-04 15:15:02,925] WARNING simulation_progress.parsers                   failed to load plugin example_plugin.py, module is not ready for production. Once ready, remove ImportError exception raise statement
+[2020-11-04 15:15:02,925] DEBUG   simulation_progress.parser                    got parsers: <Parser DeepMDModelDeviationParser>, <Parser PlumedMetaDParser>, <Parser DeepMDTrainParser>, <Parser LammpsMetaDParser>
+[2020-11-04 15:15:02,926] DEBUG   simulation_progress.parser                    trying data parser: <Parser DeepMDModelDeviationParser>
+[2020-11-04 15:15:02,927] DEBUG   simulation_progress.parser                    trying data parser: <Parser PlumedMetaDParser>
+[2020-11-04 15:15:02,927] DEBUG   simulation_progress.parser                    trying data parser: <Parser DeepMDTrainParser>
+[2020-11-04 15:15:02,927] DEBUG   simulation_progress.parser                    trying data parser: <Parser LammpsMetaDParser>
+[2020-11-04 15:15:02,927] DEBUG   simulation_progress.parser                    opening new file object
+[2020-11-04 15:15:02,928] DEBUG   simulation_progress.parser                    opening new file object
+[2020-11-04 15:15:02,928] DEBUG   simulation_progress.parser                    opening new file object
+[2020-11-04 15:15:02,928] DEBUG   simulation_progress.parser                    opening new file object
+[2020-11-04 15:15:03,336] WARNING simulation_progress.parser                    parser <Parser DeepMDTrainParser> cannot handle COLVAR file type
+[2020-11-04 15:15:03,340] INFO    simulation_progress.parser                    parser <Parser PlumedMetaDParser> can handle COLVAR file type
+[2020-11-04 15:15:03,353] WARNING simulation_progress.parser                    parser <Parser DeepMDModelDeviationParser> cannot handle COLVAR file type
+[2020-11-04 15:15:03,379] WARNING simulation_progress.parser                    parser <Parser LammpsMetaDParser> cannot handle COLVAR file type
+[2020-11-04 15:15:03,953] DEBUG   simulation_progress.parser                    percent done:  10.02, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:04,086] DEBUG   simulation_progress.parser                    percent done:  20.04, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:04,211] DEBUG   simulation_progress.parser                    percent done:  30.06, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:04,340] DEBUG   simulation_progress.parser                    percent done:  40.08, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:04,473] DEBUG   simulation_progress.parser                    percent done:  50.10, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:04,601] DEBUG   simulation_progress.parser                    percent done:  60.11, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:04,721] DEBUG   simulation_progress.parser                    percent done:  70.13, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:04,845] DEBUG   simulation_progress.parser                    percent done:  80.15, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:04,965] DEBUG   simulation_progress.parser                    percent done:  90.17, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:05,090] DEBUG   simulation_progress.parser                    percent done: 100.00, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:05,092] DEBUG   simulation_progress.parser                    percent done: 100.00, writing progress file: /tmp/user-21563c92-7aa6-4d0a-a825-fd8b227b7232-progress
+[2020-11-04 15:15:05,093] DEBUG   simulation_progress.parser                    using passed in file object
+[2020-11-04 15:15:06,116] DEBUG   simulation_progress.parser                    data parsed successfully: /home/rynik/Raid/dizertacka/train_Si/ge_DPMD/metad/cd/COLVAR after 1 attempts
+[2020-11-04 15:15:06,117] DEBUG   simulation_progress.utils                     file read execution time: 3.19s
+[2020-11-04 15:15:06,208] DEBUG   simulation_progress.utils                     get dataframe from cache execution time: 3.28s
+[2020-11-04 15:15:28,879] INFO    __main__                                      requested plot type is: line
+[2020-11-04 15:15:39,022] INFO    __main__                                      requested plot type is: line
