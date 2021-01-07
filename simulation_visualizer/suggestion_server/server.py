@@ -30,7 +30,7 @@ logging.getLogger("ssh_utilities").setLevel(logging.WARNING)
 
 
 class SocketServer:
-    """Server side implementation of basic sqentuial socket server."""
+    """Server side implementation of basic seqntuial socket server."""
 
     def __init__(self, address) -> None:
 

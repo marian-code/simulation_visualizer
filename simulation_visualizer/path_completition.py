@@ -38,11 +38,15 @@ class Completion:
             initialized SSHConnection object
         """
         local = True if host == gethostname().lower() else False
+        log.debug(f"local: {local}, hostname: {gethostname()}")
         # open connection to host
         if not self._c:
+            log.info(f"connecting to server {host}")
             self._c = Connection.get(host.lower(), local=local, quiet=True)
         # if host changed establish new connection
         elif self._c.server_name != host.upper():
+            log.info(f"changing connection from server: {self._c.server_name} "
+                     f"to {host.upper()}")
             self._c.close()
             self._c = Connection.get(host.lower(), local=local, quiet=True)
 
@@ -71,18 +75,30 @@ class Completion:
             return ["/home/"]
 
         path = self.c(host).pathlib.Path(input_path)
+        log.debug(f"got base path: {path}")
 
         if path.is_file():
+            log.debug(f"path is file, returning ...")
             return [str(path)]
 
         while True:
 
+            log.debug(f"checking path: {path}, is dir: {path.is_dir()}")
             if path.is_dir():
                 dirs_files = [d for d in self.c(host).pathlib.Path(path).glob("*")]
+                log.debug(f"got dir contents: {dirs_files}")
                 break
             else:
-                path = path.parent
+                parent = path.parent
+                if path == parent:
+                    log.warning("got to the bottom of directory tree")
+                    dirs_files = [d for d in parent.glob("*")]
+                    break
+                else:
+                    path = parent
+                    log.debug(f"got path parent: {path}")
 
+        log.debug("filtering dirs and files")
         paths = []
         for d in dirs_files:
             if d.is_dir():
@@ -90,6 +106,7 @@ class Completion:
             else:
                 paths.append(str(d))
 
+        log.debug("sorting and returning")
         return sorted(paths)
 
 
@@ -113,9 +130,9 @@ class Suggest:
 
         Parameters
         ----------
-        parser : str
-            name of the hsot server
-        prefix : str
+        host : str
+            name of the host server
+        filename : str
             parsed part of the path being currently completed
         unique_socket_address: str
             server <-> client communication socket address, location must be
@@ -126,7 +143,6 @@ class Suggest:
         List[str]
             [description]
         """
-
         kwargs: Dict[str, str] = {}
         kwargs["host"] = host
         kwargs["input_path"] = filename
@@ -135,23 +151,28 @@ class Suggest:
         log.debug(f"requesting function: {self.function}")
 
         # first try to get the answer from suggestion server
-        client = connect_to_suggestion_server(
-            log_level=logging.DEBUG,
-            unique_socket_address=unique_socket_address
-        )
-
         try:
-            # raise OSError
-            client.write((self.function, kwargs))
-            result = client.read()
-
-        # if suggestion server method fails, revert to direct mode
-        except OSError as e:
-            log.error(f"encountered exception when retrieving "
-                      f"data from server {e}")
-
+            client = connect_to_suggestion_server(
+                log_level=logging.DEBUG,
+                unique_socket_address=unique_socket_address
+            )
+        except TimeoutError:
             log.debug("switching to serverless suggestion engine")
-            result = getattr(Completion(), self.function, None)(**kwargs)
-        finally:
-            # client.close()
-            return result
+            return getattr(Completion(), self.function, None)(**kwargs)
+        else:
+            try:
+                # raise OSError
+                client.write((self.function, kwargs))
+                result = client.read()
+
+            # if suggestion server method fails, revert to direct mode
+            except OSError as e:
+                log.warning(f"encountered exception when retrieving "
+                            f"data from server {e}")
+
+                log.debug("switching to serverless suggestion engine")
+                result = getattr(Completion(), self.function, None)(**kwargs)
+            else:
+                client.close()
+            finally:
+                return result

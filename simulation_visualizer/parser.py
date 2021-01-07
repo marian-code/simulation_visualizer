@@ -10,6 +10,11 @@ from typing import IO, TYPE_CHECKING, List, Optional, Tuple, Union
 from ssh_utilities import Connection
 from typing_extensions import Literal
 
+try:
+    from typing import final  # python >=3.8 version
+except ImportError:
+    from typing_extensions import final
+
 from .parsers import load_parsers
 from .utils import timeit
 
@@ -64,6 +69,7 @@ class FileParser(metaclass=ParserMount):
     parsers: List["FileParser"]
     session_id: str
 
+    @final
     @classmethod
     @contextmanager
     def _file_opener(cls, host, path, fileobj: Optional[IO] = None,
@@ -96,6 +102,7 @@ class FileParser(metaclass=ParserMount):
                         finally:
                             pass
 
+    @final
     @classmethod
     def set_session_id(cls, session_id: str):
         cls.session_id = session_id
@@ -144,6 +151,17 @@ class FileParser(metaclass=ParserMount):
 
 
 class DataExtractor:
+    """Class taking care of reading file from remote.
+
+    Parameters
+    ----------
+    path: str
+        the path to file to be read from remote
+    host: str
+        server name string
+    session_id: str
+        unique session id string for each user
+    """
 
     parsers: List[FileParser]
 

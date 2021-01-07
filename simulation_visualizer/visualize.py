@@ -377,8 +377,8 @@ def toggle_z_axis(toggle_value: str) -> Tuple[bool, "_DS", "_DS",
     return multiselect_y, visible, visible, visible, plot_type
 
 
-if __name__ == '__main__':
-
+def main():
+    """Toplevel visualizer function."""
     log_level = (5 - input_parser()["log_level"]) * 10
 
     if log_level == 0:
@@ -405,3 +405,6 @@ if __name__ == '__main__':
 
     app.run_server(debug=True, host=SERVER_HOST, processes=10, threaded=False,
                    port=SERVER_PORT)
+
+if __name__ == '__main__':
+    main()

@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     Picklable = TypeVar("Picklable")
 
 DEFAULT_SOCK_ADDR = "/tmp/socket_suggestion_server_plot.s"
+CONNECTION_TIMEOUT = 0.001
 
 log = logging.getLogger(__name__)
 
@@ -24,13 +25,19 @@ class SocketClient:
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 
         log.debug("attempting to connect to server")
+
+        self.sock.settimeout(CONNECTION_TIMEOUT)
         try:
             self.sock.connect(address)
         except FileNotFoundError:
             raise ConnectionRefusedError("could not connect to "
                                          "suggestion server")
+        except socket.timeout:
+            raise TimeoutError("could not connect to socket in specified time")
         else:
             log.debug("succesfully connected to server")
+        finally:
+            self.sock.settimeout(None)
 
     def write(self, data: "Picklable"):
         """Send data to server.
@@ -53,7 +60,7 @@ class SocketClient:
         self.sock.send(data_bytes)
 
     def read(self) -> "Picklable":
-        """Read from message from server.
+        """Read message from server.
 
         Returns
         -------
@@ -103,8 +110,14 @@ def connect_to_suggestion_server(*, log_level: int, unique_socket_address: str
     -------
     SocketClient
         client side connected to server
+
+    Raises
+    ------
+    TimeoutError
+        if connection attempt has timed out three times
     """
     started = False
+    timeout_counter = 0
 
     log.debug(f"logging for server is set to: {log_level}")
 
@@ -130,8 +143,15 @@ def connect_to_suggestion_server(*, log_level: int, unique_socket_address: str
                 # with until server creates socket file
                 log.debug("waiting until server creates socket file")
                 while not os.path.exists(unique_socket_address):
-                    time.sleep(0.001)
+                    time.sleep(CONNECTION_TIMEOUT)
 
                 started = True
+        except TimeoutError:
+            log.warn("connection to socket server timed out")
+            if timeout_counter > 3:
+                raise TimeoutError("three attempts to connect to suggestion "
+                                   "server have timed out")
+            else:
+                timeout_counter += 1
         else:
             return cl
