@@ -1,3 +1,5 @@
+# [Try Me!](http://158.195.19.213:8050)
+
 # Simulation visualizer
 
 Has the ability to load and plot various data formats (depending on available plugins)
