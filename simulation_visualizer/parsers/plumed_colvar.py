@@ -1,24 +1,34 @@
 import re
-from typing import IO, List, Optional
+from typing import IO, TYPE_CHECKING, List, Optional, Tuple
 
 import pandas as pd
 from simulation_visualizer.parser import FileParser
 
+if TYPE_CHECKING:
+    from simulation_visualizer.parser import SUGGEST
 
 class PlumedMetaDParser(FileParser):
 
     name = "Plumed-COLVAR"
     header = re.compile(r"#!\s*FIELDS\s*", re.I)
+    description = (
+        "Extracts data from PLUMED COLVAR file. The file is rather easy to "
+        "parse. First column contains time and the successive ones contain "
+        "user defined quantities. The headed labels the columns accordingly."
+    )
 
     @classmethod
-    def extract_header(cls, path: str, host: str,
-                       fileobj: Optional[IO] = None) -> List[str]:
+    def extract_header(cls, path: str, host: str, fileobj: Optional[IO] = None
+                       ) -> Tuple[List[str], "SUGGEST"]:
 
         with cls._file_opener(host, path, fileobj) as f:
             line = f.readline()
 
             if cls.header.match(line):
-                return re.sub(r"#!\s*FIELDS\s*", "", line).split()
+                return (
+                    re.sub(r"#!\s*FIELDS\s*", "", line).split(),
+                    cls._suggest_axis()
+                )
             else:
                 raise ValueError("Unsupported header format")
 
@@ -28,7 +38,7 @@ class PlumedMetaDParser(FileParser):
 
         with cls._file_opener(host, path, fileobj, copy_method=True) as f:
 
-            header = cls.extract_header(host, path, f)
+            header = cls.extract_header(host, path, f)[0]
             f.seek(0)
 
             df = pd.read_table(f, sep=r"\s+", header=0, names=header,

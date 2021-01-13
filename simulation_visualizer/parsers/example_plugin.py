@@ -2,9 +2,12 @@
 raise ImportError("Module not yet ready for production")
 
 import re
-from typing import IO, List, Optional
+from typing import IO, TYPE_CHECKING, List, Optional, Tuple
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from simulation_visualizer.parser import SUGGEST
 
 # add FileParser to path by manipulating sys path if you are not working
 # directly in package dir
@@ -12,17 +15,24 @@ import pandas as pd
 # sys.path.append("/path/to/FileParser")
 from simulation_visualizer.parser import FileParser
 
+
 # all plugin parsers must be subclasses of FileParser and override its two
 # abstract methods, extract_header() and extract_data() overiding other
 # methods is optional
 class ExampleParser(FileParser):
 
-    # name is arbitrarry
+    # name is arbitrarry, but should be unique to parser
     name = "Example-file"
     # header should uniquelly define each type of file,
     # based on this re pattern can_handle() method in base class will decide
     # if this parser is suitable for suplied type of file
     header = re.compile(r"#!\s*FIELDS\s*", re.I)
+
+    # short description ofh the parser
+    description = (
+        "Here should be some consise description of the parser which will be "
+        "displayed in webpage."
+    )
 
     # Or you can always override can_handle method for this subclass and define
     # your own criteria, but the header method should suffice for most cases
@@ -35,19 +45,25 @@ class ExampleParser(FileParser):
         # this should run as fast as possible, keep that in mind!
         return False
 
+    # suggest which label should be preset for which axis. Does not have to be
+    # overridden, you can use default implementation
+    @staticmethod
+    def _suggest_axis() -> "SUGGEST":
+        return {"x": [0], "y": [1], "z": [2]}
+
     # this method should extract file header, or whatever part of the file that
     # defines names of data columns, this will be displayed in gui for user to
     # assign to axes, after that data from selected columns will be read and
     # plotted
     @classmethod
-    def extract_header(cls, path: str, host: str,
-                       fileobj: Optional[IO] = None) -> List[str]:
+    def extract_header(cls, path: str, host: str, fileobj: Optional[IO] = None
+                       ) -> Tuple[List[str], "SUGGEST"]:
 
         with cls._file_opener(host, path, fileobj) as f:
             line = f.readline()
 
             if cls.header.match(line):
-                return re.sub(r"#!\s*FIELDS\s*", "", line).split()
+                return re.sub(r"#!\s*FIELDS\s*", "", line).split(), cls._suggest_axis()
             else:
                 raise ValueError("Unsupported header format")
 
@@ -73,7 +89,7 @@ class ExampleParser(FileParser):
         # the copy method is significntly faster for larger files
         with cls._file_opener(host, path, fileobj, copy_method=True) as f:
 
-            header = cls.extract_header(host, path, f)
+            header = cls.extract_header(host, path, f)[0]
             f.seek(0)
 
             df = pd.read_table(f, sep=r"\s+", header=0, names=header,

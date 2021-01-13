@@ -5,15 +5,15 @@ from contextlib import contextmanager
 from pathlib import Path
 from socket import gethostname
 from tempfile import TemporaryDirectory
-from typing import IO, TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import IO, TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from ssh_utilities import Connection
 from typing_extensions import Literal
 
 try:
-    from typing import final  # python >=3.8 version
+    from typing import final, TypedDict  # python >=3.8 version
 except ImportError:
-    from typing_extensions import final
+    from typing_extensions import final, TypedDict
 
 from .parsers import load_parsers
 from .utils import timeit
@@ -23,10 +23,15 @@ if TYPE_CHECKING:
 
     from pandas import DataFrame
 
+    SUGGEST = TypedDict("SUGGEST", {
+        "x": List[int],
+        "y": List[int],
+        "z": List[int]
+    })
+
 log = logging.getLogger(__name__)
 
 MAX_PARSE_ATTEMPTS: int = 5
-
 
 class ParserMount(type):
     """Registers new Parsers."""
@@ -65,6 +70,7 @@ class FileParser(metaclass=ParserMount):
     """
 
     name: str = "GENERIC"
+    description: str = "Generic parser Class"
     header: "Pattern"
     parsers: List["FileParser"]
     session_id: str
@@ -134,9 +140,23 @@ class FileParser(metaclass=ParserMount):
                             f"{Path(path).name} file type")
                 return False
 
+    @staticmethod
+    def _suggest_axis() -> "SUGGEST":
+        """Get default data column index for each axis.
+
+        For 'x' only one index should be specified, if more are present, only
+        the first will be used
+
+        Returns
+        -------
+        "SUGGEST"
+            dictionary with data column indices for each axis
+        """
+        return {"x": [0], "y": [1], "z": [2]}
+
     @abc.abstractclassmethod
     def extract_header(cls, path: str, host: str,
-                       fileobj: Optional[IO] = None) -> List[str]:
+                       fileobj: Optional[IO] = None) -> Tuple[List[str], "SUGGEST"]:
         """Return a list with column names"""
         raise NotImplementedError
 
@@ -179,11 +199,12 @@ class DataExtractor:
         with timeit("file read"):
             return self._get_async("data")
 
-    def header(self) -> Union[List[str], Exception]:
+    def header(self) -> Union[Tuple[List[str], "SUGGEST"], Exception]:
         return self._get_async("header")
 
     def _get_async(self, what: Literal["data", "header"]
-                   ) -> Union["DataFrame", List[str], Exception]:
+                   ) -> Union["DataFrame", Tuple[List[str], "SUGGEST"],
+                              Exception]:
 
         with cf.ThreadPoolExecutor(max_workers=len(self.parsers)) as executor:
             future_to_df = {
@@ -202,7 +223,8 @@ class DataExtractor:
 
     def _get_one(self, parser: FileParser, what: Literal["data", "header"]
                  ) -> Tuple[Optional[Exception],
-                            Optional[Union["DataFrame", List[str]]]]:
+                            Optional[Union["DataFrame",
+                                           Tuple[List[str], "SUGGEST"]]]]:
 
         log.debug(f"trying {what} parser: {parser}")
 
@@ -215,18 +237,18 @@ class DataExtractor:
         for i in range(1, MAX_PARSE_ATTEMPTS + 1):
 
             try:
-                df = getattr(parser, f"extract_{what}", None)(self._path,
-                                                              self._host)
+                data = getattr(parser, f"extract_{what}", None)(self._path,
+                                                                self._host)
             except FileNotFoundError as e:
                 log.warning(e)
                 error = e
             except Exception as e:
-                log.warning(e)
+                log.exception(e)
                 error = e
             else:
                 log.debug(f"{what} parsed successfully: {self._path} "
                           f"after {i} attempts")
-                return df, None
+                return data, None
         else:
             log.warning(f"{what} parser {parser} "
                         f"failed to extract {self._path}")

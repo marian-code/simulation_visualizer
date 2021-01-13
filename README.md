@@ -54,4 +54,4 @@ write a plugin in no time.
 
 - add progressbar when loading large files
 - clearer error messages showing as detailed report as possible
-- repair servers sometimes spontaneously relaoding
+- repair server sometimes spontaneously relaoding
