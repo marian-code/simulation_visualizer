@@ -18,7 +18,9 @@ has defined keys for all available machines (Kohn, Hartree, Fock, Schrodinger,
 Landau, Aurel) The only problem you could possibly encounter is related to file
 access privilages. As the server runs on `Dusanko` it logs in as user `rynik` so
 this might stop the server from accessing some files. It happens sometimes mostly
-with files written by programs that where run through PBS job manager.
+with files written by programs that where run through PBS job manager. This problem
+can simply be prevented by adding this line to PBS script: `#PBS -W umask=0022` or
+by changing privilages with `chmod`
 
 The second option is to deploy locally:
 
@@ -54,4 +56,4 @@ write a plugin in no time.
 
 - add progressbar when loading large files
 - clearer error messages showing as detailed report as possible
-- repair server sometimes spontaneously relaoding
+- repair server sometimes spontaneously reloading
