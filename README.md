@@ -1,6 +1,11 @@
-<form action="http://158.195.19.213:8050">
-    <input type="submit" value="Try Me!" />
-</form>
+<h2>
+  <a
+    target="_blank"
+    href="http://158.195.19.213:8050"
+  >
+    Try Me!
+  </a>
+</h2>
 
 # Simulation visualizer
 
