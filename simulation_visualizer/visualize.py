@@ -260,9 +260,7 @@ def serve_layout():
                         children=[
                             html.H3(children="Parsers"),
                             html.Hr(),
-                            html.P(
-                                children=PLUGINS_INTRO
-                            ),
+                            html.P(children=PLUGINS_INTRO),
                             html.Div(
                                 children=[
                                     html.Div(
@@ -519,7 +517,9 @@ def update_axis_select(
     path: str,
     addressbar_sw: bool,
     plot_clicks: int,
-) -> Tuple["_LDS", "_LDS", "_LDS", str, str, str]:
+) -> Tuple[
+    "_LDS", "_LDS", "_LDS", str, str, str, str, "_DS", str, str, bool, int, int
+]:
 
     if not dash.callback_context.triggered:
         raise PreventUpdate("No trigering event")
@@ -564,10 +564,13 @@ def update_axis_select(
         style = {"color": "red"}
 
     if event_id == "url-path":
-        x_select = x_sel
-        y_select = y_sel
-        z_select = z_sel
-        plot_clicks += 1
+        if x_sel != dash.no_update and y_sel != dash.no_update:
+            x_select = x_sel
+            y_select = y_sel
+            z_select = z_sel
+            plot_clicks += 1
+        else:
+            plot_clicks = dash.no_update
     else:
         host = dash.no_update
         path = dash.no_update
@@ -610,8 +613,10 @@ def update_url_select(
         search = [f"?x={x_select}"]
     else:
         search = ["?"]
-    search.extend([f"y={y}" for y in y_select])
-    search.extend([f"z={z}" for z in z_select])
+    if y_select:
+        search.extend([f"y={y}" for y in y_select])
+    if z_select:
+        search.extend([f"z={z}" for z in z_select])
     search.extend([f"dim={dim}"])
     search = "&".join(search)
 
@@ -656,7 +661,8 @@ def suggest_path(host: str, filename: str, session_id: str):
 
 def parse_url(url: str):
     URL = r"https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d*"
-    DATA = r"(.*?)\?(.*?)#(.*)"
+      # negative lookahed ensures that we match the last one #
+    DATA = r"(.*?)\?(.*?)#(?!.*#)(.*)"
     URL_FIND = re.compile(URL + DATA)
     PARAM_FIND = r"{}=(\S*?)(?:&|\Z)"
 
@@ -672,7 +678,11 @@ def parse_url(url: str):
         x_select = re.findall(PARAM_FIND.format("x"), search)
         y_select = re.findall(PARAM_FIND.format("y"), search)
         z_select = re.findall(PARAM_FIND.format("z"), search)
-        dim = re.findall(PARAM_FIND.format("dim"), search)[0]
+        try:
+            dim = re.findall(PARAM_FIND.format("dim"), search)[0]
+        except IndexError:
+            log.warning("could not parse dimension from url, defaulting to 2")
+            dim = 2
 
         log.debug(f"found in url: x:{x_select}, y:{y_select}, z:{z_select}")
         log.debug(f"dimension is: {dim}")

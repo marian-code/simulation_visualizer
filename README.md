@@ -1,4 +1,11 @@
-# [Try Me!](http://158.195.19.213:8050)
+<h2>
+  <a
+    target="_blank"
+    href="http://158.195.19.213:8050"
+  >
+    Try Me!
+  </a>
+</h2>
 
 # Simulation visualizer
 

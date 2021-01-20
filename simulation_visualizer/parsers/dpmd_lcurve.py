@@ -23,7 +23,7 @@ class DeepMDTrainParser(FileParser):
 
     @staticmethod
     def _suggest_axis() -> "SUGGEST":
-        return {"x": [0], "y": [1, 2, 3 ,4, 5, 6], "z": [-1]}
+        return {"x": [0], "y": [2, 3 ,4, 5, 6, 7], "z": [-1]}
 
     @classmethod
     def extract_header(cls, path: str, host: str, fileobj: Optional[IO] = None
