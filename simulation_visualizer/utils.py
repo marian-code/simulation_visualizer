@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from socket import gethostname
 from time import time
 from typing import Dict
+from pathlib import Path
 
 from ssh_utilities import Connection
 import argparse
@@ -45,5 +46,16 @@ def input_parser() -> Dict[str, int]:
     p.add_argument("-v", "--verbose", default=0, action="count", dest="log_level",
                    help="set verbosity level 1 - 4, 4=EXCEPTION and 1=DEBUG, "
                    "5=DEBUG for libraries too")
+    p.add_argument("-e", "--encrypt", default=False, action="store_true",
+                   help="whether to run over ssl secured https or only http. "
+                   "I secure connection is chosen the certificate will be "
+                   "generated ad-hoc by Flask, so the site will appear to "
+                   "user as one with invalid certificate")
 
     return vars(p.parse_args())
+
+
+def get_auth() -> Dict[str, str]:
+
+    text = (Path(__file__).parent / "data/users.txt").read_text().splitlines()
+    return {line.split(":")[0]: line.split(":")[1] for line in text}

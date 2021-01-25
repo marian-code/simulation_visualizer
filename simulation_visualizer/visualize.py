@@ -23,7 +23,8 @@ from typing_extensions import Literal
 
 from simulation_visualizer.parser import DataExtractor
 from simulation_visualizer.path_completition import Suggest
-from simulation_visualizer.utils import get_file_size, input_parser, sizeof_fmt
+from simulation_visualizer.utils import get_file_size, input_parser, sizeof_fmt, get_auth
+import dash_auth
 
 if TYPE_CHECKING:
     _DS = Dict[str, str]
@@ -54,11 +55,14 @@ CACHE_CONFIG = {
     #'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379')
 }
 SUGGESTION_SOCKET = "/tmp/user-{}-suggestion_server"
+USER_LIST = get_auth()
 
 register_exit_hook(rmtree, CACHEFILE)
 
 app = dash.Dash(__name__, external_stylesheets=EXTERNAL_STYLESHEETS)
 app.title = "Simulation visualizer"
+server = app.server
+auth = dash_auth.BasicAuth(app, USER_LIST)
 
 cache = Cache()
 cache.init_app(app.server, config=CACHE_CONFIG)
@@ -744,7 +748,9 @@ def toggle_z_axis(
 
 def main():
     """Toplevel visualizer function."""
-    log_level = (5 - input_parser()["log_level"]) * 10
+    args = input_parser()
+    
+    log_level = (5 - args["log_level"]) * 10
 
     if log_level == 0:
         lib_level = 10
@@ -776,6 +782,7 @@ def main():
         processes=10,
         threaded=False,
         port=SERVER_PORT,
+        ssl_context="adhoc" if args["encrypt"] else None
     )
 
 

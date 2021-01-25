@@ -1,7 +1,7 @@
 <h2>
   <a
     target="_blank"
-    href="http://158.195.19.213:8050"
+    href="https://158.195.19.213:8050"
   >
     Try Me!
   </a>
@@ -17,10 +17,18 @@ from any servers defined in` ~/.ssh/config file`. Currently supported formats ar
 - LAMMPS log file with custom thermo style without multiline
 - DeepMD-kit LAMMPS pair style model deviation output
 
+# Security
+
+The application runs securely over https but the certificates are generated
+ad-hoc and sef-sighed by Werkzeug so the app will appear as if its certificate
+has expired although it is valid. This is meant to be so for simplicity and
+will not be repaired! The app also requires login. As of now only admin
+specified users are allowed to login. The login credentials are your
+**...@fmph.uniba.sk** mail address and **password** is same as on **DEP2C**.
 # Deploy
 
 There are two options. You can use already running version which is hosted on
-[Dusanko](http://158.195.19.213:8050) this should be always up and running. It
+[Dusanko](https://158.195.19.213:8050) this should be always up and running. It
 has defined keys for all available machines (Kohn, Hartree, Fock, Schrodinger,
 Landau, Aurel) The only problem you could possibly encounter is related to file
 access privilages. As the server runs on `Dusanko` it logs in as user `rynik` so
@@ -31,9 +39,20 @@ by changing privilages with `chmod`
 
 The second option is to deploy locally:
 
+First you have to generate file with user logins in data folder named `users.txt`.
+The format is one `username:password` on each line.
+
 ```bash
+# install
 pip install git+https://github.com/ftl-fmfi/simulation-visualizer.git
-visualizer -vvvv & # for full debug mode and leave it running in the background
+# create password file
+cd path/to/simulation_visualizer
+cd data
+touch users.txt
+echo user1:password1 >> users.txt
+echo user2:password2 >> users.txt
+# run
+visualizer -vvvv -e & # for full debug mode, run over https and leave it running in the background
 ```
 
 This option assumes that you have generated ssh keys for servers you will want
