@@ -8,3 +8,4 @@ docs/build/
 docs/source/_*
 **/simulation_visualizer/logs/*
 **/data/users.txt
+**/data/*.pem

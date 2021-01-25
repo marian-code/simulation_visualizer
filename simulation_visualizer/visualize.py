@@ -3,48 +3,34 @@ import re
 from atexit import register as register_exit_hook
 from pathlib import Path
 from shutil import rmtree
-from simulation_visualizer.text import PLUGINS_INTRO, URL_SHARING, USAGE
-from socket import gethostname
 from tempfile import mkdtemp
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
-from uuid import uuid4
 
 import dash
-import dash_core_components as dcc
+import dash_auth
 import dash_html_components as html
 import plotly.express as px
 import plotly.graph_objects as go
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-from dash_extensions import Download
 from flask_caching import Cache
-from ssh_utilities import Connection
 from typing_extensions import Literal
 
+from simulation_visualizer.layout import serve_layout
 from simulation_visualizer.parser import DataExtractor
 from simulation_visualizer.path_completition import Suggest
-from simulation_visualizer.utils import get_file_size, input_parser, sizeof_fmt, get_auth
-import dash_auth
+from simulation_visualizer.utils import (get_auth, get_file_size, input_parser,
+                                         sizeof_fmt)
 
 if TYPE_CHECKING:
     _DS = Dict[str, str]
     _LDS = List[_DS]
     from pandas import DataFrame
 
-
 log = logging.getLogger(__name__)
 
 SERVER_HOST = "0.0.0.0"
-SERVER_PORT = "8050"
-
 EXTERNAL_STYLESHEETS = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
-PARSERS = {
-    str(p.name): p.description for p in DataExtractor("", "", "").parsers
-}
-HOSTS = [{"label": h, "value": h} for h in Connection.get_available_hosts()]
-HOSTS.append(
-    {"label": f"{gethostname().lower()}-local", "value": gethostname().lower()}
-)
 
 CACHEFILE = mkdtemp(prefix="sim_visualizer_cache_")
 CACHE_CONFIG = {
@@ -63,282 +49,8 @@ app = dash.Dash(__name__, external_stylesheets=EXTERNAL_STYLESHEETS)
 app.title = "Simulation visualizer"
 server = app.server
 auth = dash_auth.BasicAuth(app, USER_LIST)
-
 cache = Cache()
 cache.init_app(app.server, config=CACHE_CONFIG)
-
-
-def serve_layout():
-    session_id = str(uuid4())
-
-    plot = [
-        dcc.Loading(
-            id="loading-plot",
-            type="default",
-            children=[html.Div(dcc.Graph(id="plot-graph"))],
-        ),
-        html.P(id="plot-error", style={"color": "red"}),
-    ]
-
-    plot_max = [
-        dcc.Loading(
-            id="loading-plot-max",
-            type="default",
-            children=[
-                html.Div(
-                    dcc.Graph(
-                        id="plot-graph-max",
-                        style={"width": "95vw", "height": "80vh"},
-                    )
-                )
-            ],
-        )
-    ]
-
-    tab_1 = [
-        dcc.Location(id="url-path", refresh=False),
-        html.Datalist(id="list-paths", children=[]),
-        # * select file and server controls
-        html.Div(
-            [
-                html.Div(
-                    [
-                        html.Label("Select host PC"),
-                        dcc.Dropdown(
-                            id="input-host",
-                            options=HOSTS,
-                            value="kohn",
-                        ),
-                    ],
-                    className="six columns",
-                ),
-                html.Div(
-                    [
-                        html.Label("Select path to file"),
-                        dcc.Input(
-                            id="input-path",
-                            type="text",
-                            placeholder="/full/path/to/file",
-                            style={"width": "100%"},
-                            list="list-paths",
-                        ),
-                    ],
-                    className="six columns",
-                ),
-            ],
-            className="row",
-        ),
-        html.Div(id="show-path"),
-        html.Button(id="submit-button", n_clicks=0, children="Submit"),
-        html.Div(id="show-filesize"),
-        html.Hr(),
-        html.H3(children="Graph controls"),
-        html.Div(
-            [
-                # * left column with graph controls
-                html.Div(
-                    [
-                        dcc.RadioItems(
-                            id="dimensionality-state",
-                            options=[
-                                {"label": "2D", "value": "2D"},
-                                {"label": "3D", "value": "3D"},
-                            ],
-                            value="2D",
-                        ),
-                        html.Label("Select x axis"),
-                        dcc.Loading(
-                            id="loading-x_select",
-                            type="default",
-                            children=[
-                                html.Div(
-                                    dcc.Dropdown(id="x-select", options=[])
-                                )
-                            ],
-                        ),
-                        html.Label("Select y axis"),
-                        dcc.Loading(
-                            id="loading-y-select",
-                            type="default",
-                            children=[
-                                html.Div(
-                                    dcc.Dropdown(
-                                        id="y-select", options=[], multi=True
-                                    )
-                                )
-                            ],
-                        ),
-                        html.Label(
-                            "Select z axis",
-                            id="z-axis-label",
-                            style={"display": "none"},
-                        ),
-                        dcc.Loading(
-                            id="loading-z-select",
-                            type="default",
-                            style={"display": "none"},
-                            children=[
-                                html.Div(
-                                    dcc.Dropdown(
-                                        id="z-select",
-                                        options=[],
-                                        style={"display": "none"},
-                                    )
-                                )
-                            ],
-                        ),
-                        html.Label("Select plot type"),
-                        dcc.Loading(
-                            id="loading-y-plot-type",
-                            type="default",
-                            children=[
-                                html.Div(
-                                    dcc.Dropdown(
-                                        id="plot-type",
-                                        options=[
-                                            {"label": "line", "value": "line"},
-                                            {
-                                                "label": "scatter",
-                                                "value": "scatter",
-                                            },
-                                            {
-                                                "label": "histogram",
-                                                "value": "histogram",
-                                            },
-                                            {"label": "bar", "value": "bar"},
-                                        ],
-                                        value="line",
-                                    )
-                                )
-                            ],
-                        ),
-                        html.Button(
-                            id="plot-button-state", n_clicks=0, children="Plot"
-                        ),
-                        html.Label(
-                            "Download data (please dissable any blockers or "
-                            "download will not work)"
-                        ),
-                        dcc.Dropdown(
-                            id="download-type",
-                            options=[
-                                {"label": "csv", "value": "csv"},
-                                {"label": "interactive html", "value": "html"},
-                            ],
-                            value="csv",
-                        ),
-                        html.Button("Download", id="download-button"),
-                        dcc.Loading(
-                            id="loading-y-download",
-                            type="default",
-                            children=[Download(id="download")],
-                        ),
-                    ],
-                    className="one-third column",
-                ),
-                # * right column with graph and progressbar
-                html.Div(plot, className="two-thirds column"),
-            ],
-            className="row",
-        ),
-        html.Hr(),
-        html.P(
-            children=f"Currently available parsers are: "
-            f"{', '.join(PARSERS.keys())}"
-        ),
-        html.Div(id="addressbar-sw", children=True, style={"display": "none"}),
-    ]
-
-    tab_2 = [
-        html.Div(plot_max),
-    ]
-
-    tab_3 = html.Div(
-        children=[
-            html.P(
-                children="Here you will find details about usage of this dashboard."
-            ),
-            html.Div(
-                children=[
-                    html.Div(
-                        children=[
-                            html.H3(children="Parsers"),
-                            html.Hr(),
-                            html.P(children=PLUGINS_INTRO),
-                            html.Div(
-                                children=[
-                                    html.Div(
-                                        children=[
-                                            html.H6(children=name),
-                                            html.P(
-                                                children=desc,
-                                                style={"text-indent": "15px"},
-                                            ),
-                                        ]
-                                    )
-                                    for name, desc in PARSERS.items()
-                                ]
-                            ),
-                        ],
-                        className="six columns",
-                    ),
-                    html.Div(
-                        children=[
-                            html.H3(children="Url sharing"),
-                            html.Hr(),
-                            html.P(
-                                children=URL_SHARING,
-                                style={"text-indent": "15px"},
-                            ),
-                            html.H3(children="Usage"),
-                            html.Hr(),
-                            html.P(
-                                children=USAGE,
-                                style={"text-indent": "15px"},
-                            ),
-                        ],
-                        className="six columns",
-                    ),
-                ]
-            ),
-        ],
-    )
-
-    return html.Div(
-        children=[
-            html.H1(children="Simulation visualizer"),
-            html.P(
-                children="A Dash web application for displaying progress of simulations."
-            ),
-            html.Div(session_id, id="session-id", style={"display": "none"}),
-            dcc.Tabs(
-                [
-                    dcc.Tab(
-                        label="Controls",
-                        children=tab_1,
-                        className="custom-tab",
-                        selected_className="custom-tab--selected",
-                    ),
-                    dcc.Tab(
-                        label="Fullscreen Graph",
-                        children=tab_2,
-                        className="custom-tab",
-                        selected_className="custom-tab--selected",
-                    ),
-                    dcc.Tab(
-                        label="Manual",
-                        children=tab_3,
-                        className="custom-tab",
-                        selected_className="custom-tab--selected",
-                    ),
-                ],
-                parent_className="custom-tabs",
-                className="custom-tabs-container",
-            ),
-        ]
-    )
-
-
 app.layout = serve_layout
 
 
@@ -665,7 +377,7 @@ def suggest_path(host: str, filename: str, session_id: str):
 
 def parse_url(url: str):
     URL = r"https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d*"
-      # negative lookahed ensures that we match the last one #
+    # negative lookahed ensures that we match the last one #
     DATA = r"(.*?)\?(.*?)#(?!.*#)(.*)"
     URL_FIND = re.compile(URL + DATA)
     PARAM_FIND = r"{}=(\S*?)(?:&|\Z)"
@@ -749,7 +461,7 @@ def toggle_z_axis(
 def main():
     """Toplevel visualizer function."""
     args = input_parser()
-    
+
     log_level = (5 - args["log_level"]) * 10
 
     if log_level == 0:
@@ -776,13 +488,16 @@ def main():
     for p in (Path(__file__).parent / "logs").glob("suggestion_server*"):
         p.unlink()
 
+    # TODO ssl
+    # https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
+    # https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-gunicorn-and-nginx-on-ubuntu-18-04
     app.run_server(
         debug=True,
         host=SERVER_HOST,
         processes=10,
         threaded=False,
-        port=SERVER_PORT,
-        ssl_context="adhoc" if args["encrypt"] else None
+        port=args["port"],
+        ssl_context="adhoc" if args["encrypt"] else None,
     )
 
 

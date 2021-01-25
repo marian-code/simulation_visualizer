@@ -51,6 +51,8 @@ def input_parser() -> Dict[str, int]:
                    "I secure connection is chosen the certificate will be "
                    "generated ad-hoc by Flask, so the site will appear to "
                    "user as one with invalid certificate")
+    p.add_argument("-p", "--port", default="8050", type=str,
+                   help="specify port for the dashboard")
 
     return vars(p.parse_args())
 

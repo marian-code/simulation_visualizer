@@ -20,7 +20,7 @@ from any servers defined in` ~/.ssh/config file`. Currently supported formats ar
 # Security
 
 The application runs securely over https but the certificates are generated
-ad-hoc and sef-sighed by Werkzeug so the app will appear as if its certificate
+ad-hoc and sef-signed by Werkzeug so the app will appear as if its certificate
 has expired although it is valid. This is meant to be so for simplicity and
 will not be repaired! The app also requires login. As of now only admin
 specified users are allowed to login. The login credentials are your
@@ -39,8 +39,10 @@ by changing privilages with `chmod`
 
 The second option is to deploy locally:
 
-First you have to generate file with user logins in data folder named `users.txt`.
+* you have to generate file with user logins in data folder named `users.txt`.
 The format is one `username:password` on each line.
+* create self signed certificate files with openssl if you want to run in
+production mode
 
 ```bash
 # install
@@ -51,8 +53,21 @@ cd data
 touch users.txt
 echo user1:password1 >> users.txt
 echo user2:password2 >> users.txt
+```
+
+now run debug server
+```bash
 # run
 visualizer -vvvv -e & # for full debug mode, run over https and leave it running in the background
+```
+
+or for production run:
+```bash
+cd data
+# create certificate files in data folder
+openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 365
+# run through gunicorn
+gunicorn --certfile data/cert.pem --keyfile data/key.pem --bind 0.0.0.0:8050 visualize:server
 ```
 
 This option assumes that you have generated ssh keys for servers you will want
