@@ -1,12 +1,13 @@
+import argparse
 import logging
+import os
 from contextlib import contextmanager
+from pathlib import Path
 from socket import gethostname
 from time import time
 from typing import Dict
-from pathlib import Path
 
 from ssh_utilities import Connection
-import argparse
 
 log = logging.getLogger(__name__)
 
@@ -61,3 +62,16 @@ def get_auth() -> Dict[str, str]:
 
     text = (Path(__file__).parent / "data/users.txt").read_text().splitlines()
     return {line.split(":")[0]: line.split(":")[1] for line in text}
+
+
+def get_python() -> Path:
+    """Get path of python executable.
+
+    Returns
+    -------
+    Path
+        path pointing to python binary
+    """
+    p = Path(os.__file__).parents[2] / "bin" / "python"
+    log.debug(f"got python path: {p}")
+    return p

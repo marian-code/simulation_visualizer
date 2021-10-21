@@ -4,7 +4,7 @@ from atexit import register as register_exit_hook
 from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 import dash
 import dash_auth
@@ -40,12 +40,17 @@ CACHE_CONFIG = {
 }
 SUGGESTION_SOCKET = "/tmp/user-{}-suggestion_server"
 USER_LIST = get_auth()
+# expected address is: https://simulate.duckdns.org.visualize
+APACHE_URL_SUBDIR = "visualize"
 
 register_exit_hook(rmtree, CACHEFILE)
 
-app = dash.Dash(__name__, external_stylesheets=EXTERNAL_STYLESHEETS)
+app = dash.Dash(
+    __name__,
+    external_stylesheets=EXTERNAL_STYLESHEETS,
+    requests_pathname_prefix="/visualize/",
+)
 app.title = "Simulation visualizer"
-server = app.server
 auth = dash_auth.BasicAuth(app, USER_LIST)
 cache = Cache()
 cache.init_app(app.server, config=CACHE_CONFIG)
@@ -355,37 +360,69 @@ def update_output(host: str, filename: str):
         Input("input-path", "value"),
         Input("session-id", "children"),
     ],
+    [State("url-path", "href")],
     prevent_initial_call=False,
 )
-def suggest_path(host: str, filename: str, session_id: str):
+def suggest_path(host: str, filename: Optional[str], session_id: str, href: str):
 
     if not filename:
         filename = ""
 
+    log.debug(f"url pathname: {filename}")
     log.info(f"unique user session id is: {session_id}")
 
     dirs = Suggest("get_dirs")(
-        host, filename, SUGGESTION_SOCKET.format(session_id)
+        host, filename, Path(SUGGESTION_SOCKET.format(session_id))
     )
+
+    log.debug(f"url href: {href}")
+
+    # when running through apache in https://simulate.duckdns.org/visualize
+    # this is needed because dash will overwrite the subdir component
+    if APACHE_URL_SUBDIR in href and not filename.startswith(f"/{APACHE_URL_SUBDIR}"):
+        filename = f"/{APACHE_URL_SUBDIR}{filename}"
 
     return [html.Option(value=d) for d in dirs], filename, f"#{host}"
 
 
 def parse_url(url: str):
-    URL = r"https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d*"
-    # negative lookahed ensures that we match the last one #
-    DATA = r"(.*?)\?(.*?)#(?!.*#)(.*)"
+    # URL = r"https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d*"
+    # DATA = r"(.*?)\?(.*?)#(?!.*#)(.*)"
+
+    URL_NUM = r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d*"
+    URL_STR = r".*?/visualize"
+    # find string or ip address
+    URL = r"https?://(?:" + URL_NUM + r"|" + URL_STR + r")"
+    # string component that can contain special characters ending with question mark,
+    # may or may not be present
+    PATH_COMP = r"(?:(\S*?)\?|/)?"
+    # parameters component 2-string with '=' and '&' symbols
+    # with 0 or more occurences
+    PARAM_COMP = r"((?:\S+=\S+&?){0,})"
+    # server component is just a plain string
+    # negative lookahed ensures that we match the last one '#'
+    SERVER_COMP = r"#(?!.*#)(.*)"
+    DATA = PATH_COMP + PARAM_COMP + SERVER_COMP
     URL_FIND = re.compile(URL + DATA)
     PARAM_FIND = r"{}=(\S*?)(?:&|\Z)"
 
     log.debug(f"parsing url: {url}")
 
     try:
-        filename, search, host = URL_FIND.findall(url)[0]
+        data = URL_FIND.findall(url)[0]
     except IndexError:
         log.warning("could not parse url")
         raise PreventUpdate()
     else:
+        if len(data) == 3:
+            filename, search, host = data
+        else:
+            _, host = data
+            # TODO ################################################
+            # TODO visualize component in url is getting overwritten
+            filename = ""
+            search = ""
+
         # parse string of type "?x=time&y=u_cn&y=cn&z=u_vol&dim=2D"
         x_select = re.findall(PARAM_FIND.format("x"), search)
         y_select = re.findall(PARAM_FIND.format("y"), search)

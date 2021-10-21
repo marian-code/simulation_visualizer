@@ -51,7 +51,8 @@ setup(
     python_requires=">=3.6",
     entry_points={
         'console_scripts': [
-            'visualizer = simulation_visualizer.__main__:main'
+            'visualizer = simulation_visualizer.__main__:main',
+            'visualizer-conf = simulation_visualizer.templates:main'
         ],
     },
 )

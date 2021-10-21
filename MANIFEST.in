@@ -1,0 +1,3 @@
+include logs/log_config.ini
+include templates/*.template
+include assests/*.css

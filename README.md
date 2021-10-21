@@ -1,7 +1,7 @@
 <h2>
   <a
     target="_blank"
-    href="https://158.195.19.213:8050"
+    href="https://simulate.duckdns.org/visualize"
   >
     Try Me!
   </a>
@@ -10,7 +10,7 @@
 # Simulation visualizer
 
 Has the ability to load and plot various data formats (depending on available plugins)
-from any servers defined in` ~/.ssh/config file`. Currently supported formats are:
+from any servers defined in `~/.ssh/config file`. Currently supported formats are:
 
 - Plumed COLVAR
 - DeepMD-kit training lcurve.out format
@@ -61,7 +61,7 @@ now run debug server
 visualizer -vvvv -e & # for full debug mode, run over https and leave it running in the background
 ```
 
-or for production run:
+or for simple production run:
 ```bash
 cd data
 # create certificate files in data folder
@@ -92,6 +92,128 @@ write a plugin in no time.
 # Example
 
 ![Alt Text](data/example_colvar.gif)
+
+# systemd service
+
+There is a systemd service file prepared for you to run the app as a service. Just run
+script that comes preinstalled with the package:
+
+```bash
+visualizer-conf
+```
+
+You have to create self signed certificates to run this app and output then to data
+directory.
+
+```bash
+cd .../simulation_visualizer
+openssl req -x509 -newkey rsa:4096 -keyout data/key.pem -out data/cert.pem -days 365
+```
+
+This will output reasonable service file configuration. Copy this into:
+`/etc/systemd/system/sim_visualizer.service` file and then run:
+
+```bash
+systemctl start sim_viasualizer
+systemctl enable sim_viasualizer
+```
+
+# Run as apache2 wsgi app with certificates
+
+## Install
+
+First create virtual environment. You can do that with conda:
+
+```bash
+conda create -n visualize pip
+```
+
+activate environment
+
+```bash
+conda activate visualize
+```
+
+The install the app
+
+```bash
+pip install -e .
+```
+
+or do not use `-e` if you don't want editable mode
+
+## SSL certificates
+
+Now we need to obtain ssl certificates for the app:
+
+Install [certbot](https://certbot.eff.org) by following the instructiions on website.
+You have to have a distribution that supports snap. These are mainly Ubuntu/Debian.
+
+Next you have to register some domain. certbot won't issue a certificate even for static
+ip address. this also solves routing to dymaic dns. Recomended option is duckdns.org.
+Or you can use noip.com which is slightly less convenient.
+
+## apache2 preparation
+
+These steps should be run while the environment is active
+
+First install apache2 devel package which is necessary to compile `mod_wsgi`.
+Use distribuion specific commands, this is valid for Ubuntu/Debian
+
+```bash
+sudo apt install apache2-dev
+```
+
+Now we can install `mod_wsgi` from pip. Avoid distribution specific version these
+are for python **2.7** or **3.5**. Refer to https://pypi.org/project/mod-wsgi/ for correct version for your system.
+
+```bash
+pip install mod_wsgi
+```
+
+Enable needed mods:
+
+```bash
+sudo a2enmod mod_wsgi mod_headers
+```
+
+Now run:
+
+```bash
+mod_wsgi-express module-config
+```
+
+This will output paths that should be pasted in apache2 configuration files in:
+
+```bash
+/etc/apache2/mods-available/wsgi.load
+```
+
+Edit the `apache2_wsgi.conf.tempate` file and copy it to the right directory, which is:
+
+```bash
+cp apache2_wsgi.conf.tempate /etc/apache2/sites-available/apache2_wsgi.conf
+```
+
+for Ubuntu/Debian systems. To generate reasonable default telpate you can use
+visualizer-conf script that will be installed along with the package. You should merge
+this file with one created by certbot which will output something like:
+`/etc/apache2/sites-available/000-default-le-ssl.conf`.
+
+Add user that will run the app to `www-data` group that runs the apache2
+
+```bash
+sudo usermod -a -G examplegroup exampleusername
+```
+
+Now you can enable site and reload apache server
+
+```bash
+sudo a2ensite apache2_wsgi
+sudo service apache2 reload
+```
+
+- configure log path, maybe in code!!!!
 
 # TODO
 

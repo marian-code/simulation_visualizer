@@ -1,0 +1,15 @@
+[Unit]
+Description="Simulation visualizer for LAMMPS, DeepMD-Kit, ..."
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=rynik
+Group=rynik
+Environment=PATH=/home/rynik/Software/anaconda3/bin/
+ExecStart=
+/home/rynik/Software/anaconda3/bin/gunicorn --certfile /home/rynik/code/simulation_visualizer/simulation_visualizer/data/cert.pem --keyfile /home/rynik/code/simulation_visualizer/simulation_visualizer/data/key.pem --bind 0.0.0.0:8050 --pythonpath /home/rynik/code/simulation_visualizer/simulation_visualizer visualize:server
+[Install]
+WantedBy=multi-user.target

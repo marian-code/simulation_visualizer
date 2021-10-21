@@ -1,0 +1,14 @@
+[Unit]
+Description="Simulation visualizer for LAMMPS, DeepMD-Kit, ..."
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=$USER$
+Group=$USER$
+Environment=PATH=$BIN$
+ExecStart=$BIN$/gunicorn --certfile $DATA$/cert.pem --keyfile $DATA$/key.pem --bind 0.0.0.0:8050 --pythonpath $PACKAGE$ visualize:server
+[Install]
+WantedBy=multi-user.target

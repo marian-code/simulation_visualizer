@@ -8,6 +8,8 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
 
+from ..utils import get_python
+
 if TYPE_CHECKING:
     Picklable = TypeVar("Picklable")
 
@@ -164,7 +166,7 @@ def start_server(log_level: int, unique_socket_address: Path):
     # start server
     log.debug("spawnig server process")
     subprocess.Popen(
-        [get_python(), "server.py", str(unique_socket_address), str(log_level)],
+        [str(get_python()), "server.py", str(unique_socket_address), str(log_level)],
         cwd=os.path.dirname(__file__),
     )
 
@@ -172,16 +174,3 @@ def start_server(log_level: int, unique_socket_address: Path):
     log.debug("waiting until server creates socket file")
     while not unique_socket_address.exists():
         time.sleep(CONNECTION_TIMEOUT)
-
-
-def get_python() -> str:
-    """Get path of python executable.
-
-    Returns
-    -------
-    str
-        path pointing to python binary
-    """
-    p = str(Path(os.__file__).parents[2] / "bin" / "python")
-    log.debug(f"got python path: {p}")
-    return p
