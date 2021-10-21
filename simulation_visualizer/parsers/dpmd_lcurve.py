@@ -7,18 +7,19 @@ from simulation_visualizer.parser import FileParser
 if TYPE_CHECKING:
     from simulation_visualizer.parser import SUGGEST
 
-class DeepMDTrainParser(FileParser):
 
-    name = "DeepMD-lcurve"
+class DeepMDTrainParserV1(FileParser):
+
+    name = "DeepMD-lcurve-v1"
     header = re.compile(
         r"#\s*batch\s*l2_tst\s*l2_trn\s*l2_e_tst\s*l2_e_trn\s*"
         r"l2_f_tst  l2_f_trn\s*l2_v_tst\s*l2_v_trn\s*lr", re.I
     )
     description = (
-        "Extracts data from DeePMD-kit training output - lcurve.out. This is "
-        "a fixed format file. The first column is the batch number and the "
-        "following columns show evolution of loss, energies, forces and "
-        "virials for train and test set."
+        "Extracts data from DeePMD-kit v1 training output - lcurve.out. "
+        "This is a fixed format file. The first column is the batch number "
+        "and the following columns show evolution of loss, energies, forces "
+        "and virials for train and test set."
     )
 
     @staticmethod
@@ -47,10 +48,29 @@ class DeepMDTrainParser(FileParser):
         return df
 
 
+class DeepMDTrainParserV2(DeepMDTrainParserV1):
+
+    name = "DeepMD-lcurve-v2"
+    header = re.compile(
+        r"#\s*step\s*rmse_val\s*rmse_trn\s*rmse_e_val\s*rmse_e_trn"
+        r"\s*rmse_f_val\s*rmse_f_trn\s*rmse_v_val\s*rmse_v_trn\s*lr", re.I
+    )
+    description = (
+        "Extracts data from DeePMD-kit v2 training output - lcurve.out. "
+        "This is a fixed format file. The first column is the batch number "
+        "and the following columns show evolution of loss, energies, forces "
+        "and virials for train and test set."
+    )
+
+    @staticmethod
+    def _suggest_axis() -> "SUGGEST":
+        return {"x": [0], "y": [2, 3 ,4, 5, 6, 7], "z": [-1]}
+
+
 if __name__ == "__main__":
 
     #p = "/home/rynik/Raid/dizertacka/train_Si/ge_DPMD/train/lcurve.out"
     #p = "/zfs/hybrilit.jinr.ru/user/r/rynik/dpmd_test/lcurve.out"
     p = "/home/toth/toth/deepmd/Ge/lcurve.out"
-    df = DeepMDTrainParser.extract_data(p, "kohn")
+    df = DeepMDTrainParserV1.extract_data(p, "kohn")
     print(df)

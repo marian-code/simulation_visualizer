@@ -7,9 +7,9 @@ from simulation_visualizer.parser import FileParser
 if TYPE_CHECKING:
     from simulation_visualizer.parser import SUGGEST
 
-class DeepMDModelDeviationParser(FileParser):
+class DeepMDModelDeviationParserV1(FileParser):
 
-    name = "DeepMD-model_deviation"
+    name = "DeepMD-model_deviation-v1"
     header = re.compile(
         r"#\s*step\s*max_devi_e\s*min_devi_e\s*avg_devi_e\s*max_devi_f\s*"
         r"min_devi_f\s*avg_devi_f", re.I
@@ -20,7 +20,7 @@ class DeepMDModelDeviationParser(FileParser):
         "records time and 6 other columns representing various error "
         "evolution with time. After these columns when keyword atomic is set "
         "there will be another 3N columns with individual force components "
-        "acting on each atom, these are not read!"
+        "acting on each atom, these are not read!. Works with DeepMD v1"
     )
 
     @staticmethod
@@ -52,6 +52,24 @@ class DeepMDModelDeviationParser(FileParser):
                                comment="#", usecols=range(7))
 
         return df
+
+
+class DeepMDModelDeviationParserV2(DeepMDModelDeviationParserV1):
+
+    name = "DeepMD-model_deviation-v2"
+    header = re.compile(
+        r"#\s*step\s*max_devi_v\s*min_devi_v\s*avg_devi_v\s*max_devi_f\s*"
+        r"min_devi_f\s*avg_devi_f", re.I
+    )
+
+    description = (
+        "Exctracts data that deepmd pair style in LAMMPS outputs throughtout "
+        "the simulation. This is a fixed format file with 1-st column that "
+        "records time and 6 other columns representing various error "
+        "evolution with time. After these columns when keyword atomic is set "
+        "there will be another 3N columns with individual force components "
+        "acting on each atom, these are not read!. Works with DeepMD v2"
+    )
 
 if __name__ == "__main__":
 

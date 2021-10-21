@@ -123,7 +123,7 @@ class FileParser(metaclass=ParserMount):
         Warnings
         --------
         Defined criteria must always discriminate only one type of file, so be
-        carefull
+        carefull!
         It is also advisable to make the check fast as you don not want to wait
         long for load
         """
