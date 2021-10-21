@@ -1,4 +1,4 @@
-import dash_html_components as html
+from dash import html
 
 PLUGINS_INTRO = (
     "This dashboard is extensible through parser plugins. Each plugin is one "
@@ -9,7 +9,7 @@ PLUGINS_INTRO = (
 URL_SHARING = (
     "One can notice that all actions in the control tab are reflected in the "
     "url. The url has three components: #hash - corresponding to host name at "
-    "the ned of the url. '/some/path/to/my/file' that follows after the http "
+    "the end of the url. '/some/path/to/my/file' that follows after the http "
     "address stores the path to file on remote server. Lastly querry string "
     "?x=something&y=something_else&dim=2D stores the graph parameters. The "
     "app can be started from such url and will take you right to the "

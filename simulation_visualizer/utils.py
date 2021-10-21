@@ -48,7 +48,7 @@ def input_parser() -> Dict[str, int]:
                    "5=DEBUG for libraries too")
     p.add_argument("-e", "--encrypt", default=False, action="store_true",
                    help="whether to run over ssl secured https or only http. "
-                   "I secure connection is chosen the certificate will be "
+                   "If secure connection is chosen the certificate will be "
                    "generated ad-hoc by Flask, so the site will appear to "
                    "user as one with invalid certificate")
     p.add_argument("-p", "--port", default="8050", type=str,

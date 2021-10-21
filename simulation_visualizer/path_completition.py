@@ -8,6 +8,8 @@ from simulation_visualizer.suggestion_server.client import \
     connect_to_suggestion_server
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from ssh_utilities import LocalConnection, SSHConnection
     _CONN = Union[LocalConnection, SSHConnection]
 
@@ -42,13 +44,13 @@ class Completion:
         # open connection to host
         if not self._c:
             log.info(f"connecting to server {host}")
-            self._c = Connection.get(host.lower(), local=local, quiet=True)
+            self._c = Connection(host.lower(), local=local, quiet=True)
         # if host changed establish new connection
         elif self._c.server_name != host.upper():
             log.info(f"changing connection from server: {self._c.server_name} "
                      f"to {host.upper()}")
             self._c.close()
-            self._c = Connection.get(host.lower(), local=local, quiet=True)
+            self._c = Connection(host.lower(), local=local, quiet=True)
 
         return self._c
 
@@ -124,7 +126,7 @@ class Suggest:
     def __init__(self, function_name: str):
         self.function = function_name
 
-    def __call__(self, host: str, filename: str, unique_socket_address: str
+    def __call__(self, host: str, filename: str, unique_socket_address: "Path"
                  ) -> List[str]:
         """Proxy for autocompleter methods.
 
@@ -161,7 +163,7 @@ class Suggest:
             return getattr(Completion(), self.function, None)(**kwargs)
         else:
             try:
-                # raise OSError
+                # raise OSError
                 client.write((self.function, kwargs))
                 result = client.read()
 

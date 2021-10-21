@@ -5,6 +5,7 @@ import socket
 import struct
 import subprocess
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
@@ -30,8 +31,7 @@ class SocketClient:
         try:
             self.sock.connect(address)
         except FileNotFoundError:
-            raise ConnectionRefusedError("could not connect to "
-                                         "suggestion server")
+            raise ConnectionRefusedError("could not connect to suggestion server")
         except socket.timeout:
             raise TimeoutError("could not connect to socket in specified time")
         else:
@@ -94,15 +94,16 @@ class SocketClient:
         self.sock.close()
 
 
-def connect_to_suggestion_server(*, log_level: int, unique_socket_address: str
-                                 ) -> "SocketClient":
+def connect_to_suggestion_server(
+    *, log_level: int, unique_socket_address: Path
+) -> "SocketClient":
     """Establis connection to server providing autocomplete suggestions.
 
     Parametrers
     -----------
     log_level: int
         logging level to setup server logger
-    unique_socket_address: str
+    unique_socket_address: Path
         server <-> client communication socket address, location must be
         writable
 
@@ -123,35 +124,64 @@ def connect_to_suggestion_server(*, log_level: int, unique_socket_address: str
 
     while True:
         try:
-            cl = SocketClient(unique_socket_address)
+            cl = SocketClient(str(unique_socket_address))
         except ConnectionRefusedError:
             log.warn("connection refused")
             if not started:
                 log.warn("server not running, starting...")
-
-                # delete socket file
-                log.debug("removing socket file")
-                if os.path.exists(unique_socket_address):
-                    os.remove(unique_socket_address)
-
-                # start server
-                log.debug("spawnig server process")
-                subprocess.Popen(["python", "server.py",
-                                  unique_socket_address, str(log_level)],
-                                 cwd=os.path.dirname(__file__))
-
-                # with until server creates socket file
-                log.debug("waiting until server creates socket file")
-                while not os.path.exists(unique_socket_address):
-                    time.sleep(CONNECTION_TIMEOUT)
-
+                start_server(log_level, unique_socket_address)
                 started = True
         except TimeoutError:
             log.warn("connection to socket server timed out")
             if timeout_counter > 3:
-                raise TimeoutError("three attempts to connect to suggestion "
-                                   "server have timed out")
+                raise TimeoutError(
+                    "three attempts to connect to suggestion server have timed out"
+                )
             else:
                 timeout_counter += 1
         else:
             return cl
+
+
+def start_server(log_level: int, unique_socket_address: Path):
+    """Start socket server.
+
+    Parametrers
+    -----------
+    log_level: int
+        logging level to setup server logger
+    unique_socket_address: Path
+        server <-> client communication socket address, location must be
+        writable
+    """
+    # delete socket file
+    log.debug("removing socket file")
+    try:
+        os.unlink(unique_socket_address)
+    except FileNotFoundError:
+        pass
+
+    # start server
+    log.debug("spawnig server process")
+    subprocess.Popen(
+        [get_python(), "server.py", str(unique_socket_address), str(log_level)],
+        cwd=os.path.dirname(__file__),
+    )
+
+    # with until server creates socket file
+    log.debug("waiting until server creates socket file")
+    while not unique_socket_address.exists():
+        time.sleep(CONNECTION_TIMEOUT)
+
+
+def get_python() -> str:
+    """Get path of python executable.
+
+    Returns
+    -------
+    str
+        path pointing to python binary
+    """
+    p = str(Path(os.__file__).parents[2] / "bin" / "python")
+    log.debug(f"got python path: {p}")
+    return p

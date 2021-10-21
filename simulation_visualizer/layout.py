@@ -1,8 +1,8 @@
 from socket import gethostname
 from uuid import uuid4
 
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 from dash_extensions import Download
 from ssh_utilities import Connection
 
@@ -13,9 +13,7 @@ HOSTS = [{"label": h, "value": h} for h in Connection.get_available_hosts()]
 HOSTS.append(
     {"label": f"{gethostname().lower()}-local", "value": gethostname().lower()}
 )
-PARSERS = {
-    str(p.name): p.description for p in DataExtractor("", "", "").parsers
-}
+PARSERS = {str(p.name): p.description for p in DataExtractor("", "", "").parsers}
 
 
 def serve_layout():
@@ -101,9 +99,7 @@ def serve_layout():
                             id="loading-x_select",
                             type="default",
                             children=[
-                                html.Div(
-                                    dcc.Dropdown(id="x-select", options=[])
-                                )
+                                html.Div(dcc.Dropdown(id="x-select", options=[]))
                             ],
                         ),
                         html.Label("Select y axis"),
@@ -112,9 +108,7 @@ def serve_layout():
                             type="default",
                             children=[
                                 html.Div(
-                                    dcc.Dropdown(
-                                        id="y-select", options=[], multi=True
-                                    )
+                                    dcc.Dropdown(id="y-select", options=[], multi=True)
                                 )
                             ],
                         ),
@@ -193,8 +187,7 @@ def serve_layout():
         ),
         html.Hr(),
         html.P(
-            children=f"Currently available parsers are: "
-            f"{', '.join(PARSERS.keys())}"
+            children=f"Currently available parsers are: " f"{', '.join(PARSERS.keys())}"
         ),
         html.Div(id="addressbar-sw", children=True, style={"display": "none"}),
     ]
