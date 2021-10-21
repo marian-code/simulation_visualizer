@@ -16,7 +16,7 @@ REQUIREMENTS = (PKG_ROOT / "requirements.txt").read_text().split("\n")
 
 # This call to setup() does all the work
 setup(
-    name="simulation-progress",
+    name="simulation-visualizer",
     version="0.0.1",
     description="web app to display any simulation progress",
     long_description=README,
@@ -50,8 +50,8 @@ setup(
     extras_require={"test": ["unittest"] + REQUIREMENTS},
     python_requires=">=3.6",
     entry_points={
-    'console_scripts': [
-        'visualizer = simulation_visualizer.visualize:main,
-    ],
-},
+        'console_scripts': [
+            'visualizer = simulation_visualizer.__main__:main'
+        ],
+    },
 )

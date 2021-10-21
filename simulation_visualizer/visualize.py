@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 
 import dash
 import dash_auth
-import dash_html_components as html
 import plotly.express as px
 import plotly.graph_objects as go
+from dash import html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from flask_caching import Cache
@@ -19,17 +19,15 @@ from typing_extensions import Literal
 from simulation_visualizer.layout import serve_layout
 from simulation_visualizer.parser import DataExtractor
 from simulation_visualizer.path_completition import Suggest
-from simulation_visualizer.utils import (get_auth, get_file_size, input_parser,
-                                         sizeof_fmt)
+from simulation_visualizer.utils import get_auth, get_file_size, sizeof_fmt
 
 if TYPE_CHECKING:
     _DS = Dict[str, str]
     _LDS = List[_DS]
     from pandas import DataFrame
 
-log = logging.getLogger(__name__)
+log = logging.getLogger(f"simulation_visualizer.{__name__}")
 
-SERVER_HOST = "0.0.0.0"
 EXTERNAL_STYLESHEETS = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
 CACHEFILE = mkdtemp(prefix="sim_visualizer_cache_")
@@ -233,9 +231,7 @@ def update_axis_select(
     path: str,
     addressbar_sw: bool,
     plot_clicks: int,
-) -> Tuple[
-    "_LDS", "_LDS", "_LDS", str, str, str, str, "_DS", str, str, bool, int, int
-]:
+) -> Tuple["_LDS", "_LDS", "_LDS", str, str, str, str, "_DS", str, str, bool, int, int]:
 
     if not dash.callback_context.triggered:
         raise PreventUpdate("No trigering event")
@@ -334,9 +330,9 @@ def update_url_select(
     if z_select:
         search.extend([f"z={z}" for z in z_select])
     search.extend([f"dim={dim}"])
-    search = "&".join(search)
+    search_str = "&".join(search)
 
-    return [search]
+    return [search_str]
 
 
 @app.callback(
@@ -456,50 +452,3 @@ def toggle_z_axis(
         ]
 
     return multiselect_y, visible, visible, visible, plot_type
-
-
-def main():
-    """Toplevel visualizer function."""
-    args = input_parser()
-
-    log_level = (5 - args["log_level"]) * 10
-
-    if log_level == 0:
-        lib_level = 10
-        log_level = 10
-    else:
-        lib_level = 30
-
-    logging.getLogger("paramiko").setLevel(lib_level)
-    logging.getLogger("ssh_utilities").setLevel(lib_level)
-    logging.getLogger("watchdog").setLevel(lib_level)
-
-    logging.basicConfig(
-        handlers=[
-            logging.FileHandler(filename="logs/sim_visualizer.log", mode="w"),
-            logging.StreamHandler(),
-        ],
-        level=log_level,
-        format="[%(asctime)s] %(levelname)-7s " "%(name)-45s %(message)s",
-    )
-
-    # delete old suggestiion server logs
-    log.info("removing old suggestion server logs")
-    for p in (Path(__file__).parent / "logs").glob("suggestion_server*"):
-        p.unlink()
-
-    # TODO ssl
-    # https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
-    # https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-gunicorn-and-nginx-on-ubuntu-18-04
-    app.run_server(
-        debug=True,
-        host=SERVER_HOST,
-        processes=10,
-        threaded=False,
-        port=args["port"],
-        ssl_context="adhoc" if args["encrypt"] else None,
-    )
-
-
-if __name__ == "__main__":
-    main()
