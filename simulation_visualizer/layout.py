@@ -166,10 +166,10 @@ def serve_layout():
                         dcc.Dropdown(
                             id="download-type",
                             options=[
-                                {"label": "csv", "value": "csv"},
                                 {"label": "interactive html", "value": "html"},
+                                {"label": "csv", "value": "csv"},
                             ],
-                            value="csv",
+                            value="html",
                         ),
                         html.Button("Download", id="download-button"),
                         dcc.Loading(

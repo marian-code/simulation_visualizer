@@ -7,6 +7,7 @@ from simulation_visualizer.parser import FileParser
 if TYPE_CHECKING:
     from simulation_visualizer.parser import SUGGEST
 
+
 class PlumedMetaDParser(FileParser):
 
     name = "Plumed-COLVAR"
