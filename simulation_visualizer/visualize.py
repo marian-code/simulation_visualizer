@@ -475,8 +475,10 @@ def suggest_path(
     log.debug(f"url pathname: {path}")
     log.info(f"unique user session id is: {session_id}")
 
-    dirs = Suggest("get_dirs")(
-        host, filename, Path(SUGGESTION_SOCKET.format(session_id))
+    path, dirs = Suggest("get_dirs")(
+        host, path, Path(SUGGESTION_SOCKET.format(session_id, match_id["index"]))
+    )
+
     # we are outputing a whole Datalist into respective Div children. This is a
     # workaround, because we cannot pass pattern-matching dict id to Input(list=<here>)
     return (

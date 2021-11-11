@@ -74,19 +74,28 @@ class Completion:
         input_path = input_path.strip()
 
         if not input_path:
-            return ["/home/"]
+            return "/home/", ["/home/"]
 
         path = self.c(host).pathlib.Path(input_path)
         log.debug(f"got base path: {path}")
 
-        if path.is_file():
-            log.debug(f"path is file, returning ...")
-            return [str(path)]
+        try:
+            if path.is_file():
+                log.debug(f"path is file, returning ...")
+                return str(path), [str(path)]
+        except FileNotFoundError:
+            # this means that the last path component is not valid
+            # so we just discard it
+            path = path.parent
 
         while True:
+            try:
+                isdir = path.is_dir()
+            except FileNotFoundError:
+                isdir = False
 
-            log.debug(f"checking path: {path}, is dir: {path.is_dir()}")
-            if path.is_dir():
+            log.debug(f"checking path: {path}, is dir: {isdir}")
+            if isdir:
                 dirs_files = [d for d in self.c(host).pathlib.Path(path).glob("*")]
                 log.debug(f"got dir contents: {dirs_files}")
                 break
@@ -109,7 +118,7 @@ class Completion:
                 paths.append(str(d))
 
         log.debug("sorting and returning")
-        return sorted(paths)
+        return f"{path}/", sorted(paths)
 
 
 class Suggest:
@@ -151,6 +160,7 @@ class Suggest:
 
         log.debug(f"built autocomplete function arguments: {kwargs}")
         log.debug(f"requesting function: {self.function}")
+        log.debug(f"socket address is: {unique_socket_address}")
 
         # first try to get the answer from suggestion server
         try:
