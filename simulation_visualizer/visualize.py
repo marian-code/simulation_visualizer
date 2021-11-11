@@ -19,13 +19,14 @@ from typing_extensions import Literal
 from simulation_visualizer.layout import serve_layout
 from simulation_visualizer.parser import DataExtractor
 from simulation_visualizer.path_completition import Suggest
-from simulation_visualizer.utils import get_auth, get_file_size, sizeof_fmt
+from simulation_visualizer.utils import get_auth, get_file_size, get_root, sizeof_fmt
 
 if TYPE_CHECKING:
     _DS = Dict[str, str]
     _LDS = List[_DS]
     from pandas import DataFrame
 
+# for some reason this is not encompased by simulation_visualizer logger by default
 log = logging.getLogger(f"simulation_visualizer.{__name__}")
 
 EXTERNAL_STYLESHEETS = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
@@ -41,14 +42,14 @@ CACHE_CONFIG = {
 SUGGESTION_SOCKET = "/tmp/user-{}-suggestion_server"
 USER_LIST = get_auth()
 # expected address is: https://simulate.duckdns.org.visualize
-APACHE_URL_SUBDIR = "visualize"
+APACHE_URL_SUBDIR = get_root()
 
 register_exit_hook(rmtree, CACHEFILE)
 
 app = dash.Dash(
     __name__,
     external_stylesheets=EXTERNAL_STYLESHEETS,
-    requests_pathname_prefix="/visualize/",
+    requests_pathname_prefix=f"/{APACHE_URL_SUBDIR}/" if APACHE_URL_SUBDIR else "/",
 )
 app.title = "Simulation visualizer"
 auth = dash_auth.BasicAuth(app, USER_LIST)

@@ -1,7 +1,7 @@
 import logging
-from utils import input_parser
+from .utils import input_parser, set_root
 from pathlib import Path
-from visualize import app
+
 
 SERVER_HOST = "0.0.0.0"
 
@@ -28,7 +28,7 @@ def main():
             logging.StreamHandler(),
         ],
         level=log_level,
-        format="[%(asctime)s] %(levelname)-7s %(name)-45s %(message)s",
+        format="[%(asctime)s] %(levelname)-7s %(name)-53s %(message)s",
     )
 
     # delete old suggestiion server logs
@@ -36,6 +36,9 @@ def main():
     for p in (Path(__file__).parent / "logs").glob("suggestion_server*"):
         p.unlink()
 
+    set_root("")
+
+    from .visualize import app
     app.run_server(
         debug=True,
         host=SERVER_HOST,

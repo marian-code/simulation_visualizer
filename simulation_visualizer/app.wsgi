@@ -6,6 +6,8 @@ from pathlib import Path
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE))
+from utils import set_root
+set_root("visualize")
 from visualize import app
 
 # this sets up logs when apache2 runs the wsgi app

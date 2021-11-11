@@ -64,6 +64,14 @@ def get_auth() -> Dict[str, str]:
     return {line.split(":")[0]: line.split(":")[1] for line in text}
 
 
+def set_root(root: str):
+    return (Path(__file__).parent / "data/root_doc.txt").write_text(root)
+
+
+def get_root() -> str:
+    return (Path(__file__).parent / "data/root_doc.txt").read_text().strip()
+
+
 def get_python() -> Path:
     """Get path of python executable.
 
