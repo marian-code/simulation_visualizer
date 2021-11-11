@@ -6,6 +6,10 @@ from pathlib import Path
 from socket import gethostname
 from time import time
 from typing import Dict, List
+from pbs_wrapper.settings import CONFIG_DIR, MODULE_DIR
+from json import loads
+from configparser import ConfigParser
+
 
 from ssh_utilities import Connection
 
@@ -88,3 +92,30 @@ def get_python() -> Path:
     p = Path(os.__file__).parents[2] / "bin" / "python"
     log.debug(f"got python path: {p}")
     return p
+
+
+def get_qstat_col_names():
+
+    def _getdict(value):
+        if value.endswith(","):
+            value = value[:-1] + "}"
+        if not value.endswith("}"):
+            value = value + "}"
+        return loads(value)
+
+    template = "BASE"
+
+    config = ConfigParser(allow_no_value=True,
+                          converters={"dict": _getdict})
+
+    if (CONFIG_DIR / "qstat.ini").is_file():
+        config_file = CONFIG_DIR / "qstat.ini"
+        config.read(config_file)
+    else:
+        # it is not clear whether we will have write access in this directory
+        config_file = None
+        config.read(MODULE_DIR / "config" / "qstat.ini")
+
+    config[template].pop("user_assigned_id")
+
+    return list(config[template].keys())

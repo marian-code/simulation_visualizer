@@ -16,13 +16,16 @@ from dash.dependencies import ALL, MATCH, Input, Output, State
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import ServersideOutput
 from flask_caching import Cache
+from pbs_wrapper import qstat
 from ssh_utilities import Connection
 from typing_extensions import Literal
 
 from simulation_visualizer.layout import serve_layout
 from simulation_visualizer.parser import DataExtractor
 from simulation_visualizer.path_completition import Suggest
-from simulation_visualizer.utils import get_auth, get_file_size, get_root, sizeof_fmt
+from simulation_visualizer.utils import (get_auth, get_file_size, get_root,
+                                         sizeof_fmt, get_qstat_col_names)
+
 try:
     from typing import TypedDict  # type: ignore
 except ImportError:
@@ -56,6 +59,9 @@ HOSTS = [{"label": h, "value": h} for h in Connection.get_available_hosts()]
 HOSTS.append(
     {"label": f"{gethostname().lower()}-local", "value": gethostname().lower()}
 )
+# column names for qstat
+COL_NAMES = get_qstat_col_names()
+
 
 register_exit_hook(rmtree, CACHEFILE)
 
@@ -707,3 +713,24 @@ def toggle_z_axis(
         visible_t,
         plot_type,
     )
+
+
+# TODO polish this
+# TODO allow for deleting jobs
+# TODO allow jump to job dir from table
+# TODO check why this callback produces error
+@app.callback(
+    [Output("pbs-table", "columns"), Output("pbs-table", "data")],
+    Input("pbs-update-timer", "n_intervals"),
+    prevent_initial_call=False,
+)
+def pbs_updater(_):
+
+    rows = qstat([], [], [], [], force_update=True)
+
+    # too much nonsense, get rid of it
+    for r in rows:
+        r.pop("variable_list")
+
+    columns = [{"name": k, "id": k} for k in COL_NAMES]
+    return columns, rows

@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from dash import dcc
 from dash import html
+from dash_table import DataTable
 from dash_extensions import Download
 
 from simulation_visualizer.parser import DataExtractor
@@ -236,6 +237,27 @@ def serve_layout():
         ],
     )
 
+    tab_4 = html.Div(
+        children=[
+            html.P(children="Table is autoamtically updated every 5 seconds."),
+            dcc.Interval(id="pbs-update-timer", interval=5000),
+            DataTable(
+                id="pbs-table",
+                columns=[],
+                data={},
+                filter_action="native",
+                sort_action="native",
+                sort_mode="multi",
+                row_selectable="multi",
+                selected_columns=[],
+                selected_rows=[],
+                page_action="native",
+                page_current=0,
+                page_size=10,
+            ),
+        ]
+    )
+
     return html.Div(
         children=[
             html.H1(children="Simulation visualizer"),
@@ -261,6 +283,12 @@ def serve_layout():
                     dcc.Tab(
                         label="Manual",
                         children=tab_3,
+                        className="custom-tab",
+                        selected_className="custom-tab--selected",
+                    ),
+                    dcc.Tab(
+                        label="Qstat",
+                        children=tab_4,
                         className="custom-tab",
                         selected_className="custom-tab--selected",
                     ),
