@@ -140,6 +140,7 @@ class FileParser(metaclass=ParserMount):
                             f"{Path(path).name} file type")
                 return False
 
+    # TODO serch for column with name "time" or "step"
     @staticmethod
     def _suggest_axis() -> "SUGGEST":
         """Get default data column index for each axis.
@@ -152,7 +153,7 @@ class FileParser(metaclass=ParserMount):
         "SUGGEST"
             dictionary with data column indices for each axis
         """
-        return {"x": [0], "y": [1], "z": [2]}
+        return {"x": [0], "y": [1], "z": [2], "t": [0]}
 
     @abc.abstractclassmethod
     def extract_header(cls, path: str, host: str,

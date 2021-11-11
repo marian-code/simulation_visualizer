@@ -49,7 +49,7 @@ class ExampleParser(FileParser):
     # overridden, you can use default implementation
     @staticmethod
     def _suggest_axis() -> "SUGGEST":
-        return {"x": [0], "y": [1], "z": [2]}
+        return {"x": [0], "y": [1], "z": [2], "t": [0]}
 
     # this method should extract file header, or whatever part of the file that
     # defines names of data columns, this will be displayed in gui for user to

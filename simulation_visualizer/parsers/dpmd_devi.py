@@ -25,7 +25,7 @@ class DeepMDModelDeviationParserV1(FileParser):
 
     @staticmethod
     def _suggest_axis() -> "SUGGEST":
-        return {"x": [0], "y": [1, 3, 4, 6], "z": [-1]}
+        return {"x": [0], "y": [1, 3, 4, 6], "z": [-1], "t": [0]}
 
     @classmethod
     def extract_header(cls, path: str, host: str, fileobj: Optional[IO] = None

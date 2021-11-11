@@ -90,9 +90,12 @@ def serve_layout():
                             id="dimensionality-state",
                             options=[
                                 {"label": "2D", "value": "2D"},
+                                {"label": "2D-series", "value": "2D-series"},
                                 {"label": "3D", "value": "3D"},
+                                {"label": "3D-series", "value": "3D-series"},
                             ],
                             value="2D",
+                            labelStyle={'display': 'inline-block'},
                         ),
                         html.Label("Select x axis"),
                         dcc.Loading(
@@ -125,6 +128,25 @@ def serve_layout():
                                 html.Div(
                                     dcc.Dropdown(
                                         id="z-select",
+                                        options=[],
+                                        style={"display": "none"},
+                                    )
+                                )
+                            ],
+                        ),
+                        html.Label(
+                            "Select t axis",
+                            id="t-axis-label",
+                            style={"display": "none"},
+                        ),
+                        dcc.Loading(
+                            id="loading-t-select",
+                            type="default",
+                            style={"display": "none"},
+                            children=[
+                                html.Div(
+                                    dcc.Dropdown(
+                                        id="t-select",
                                         options=[],
                                         style={"display": "none"},
                                     )

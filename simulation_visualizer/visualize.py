@@ -66,8 +66,7 @@ app.layout = serve_layout
         State("x-select", "value"),
         State("y-select", "value"),
         State("z-select", "value"),
-        State("input-host", "value"),
-        State("input-path", "value"),
+        State("t-select", "value"),
         State("dimensionality-state", "value"),
         State("plot-type", "value"),
         State("download-type", "value"),
@@ -80,8 +79,7 @@ def download_data(
     x_select: str,
     y_select: Union[str, List[str]],
     z_select: str,
-    host: str,
-    path: str,
+    t_select: str,
     dimension: Literal["2D", "3D"],
     plot_type: str,
     download_type: str,
@@ -99,7 +97,7 @@ def download_data(
         }
     elif download_type == "html":
         fig = get_fig(
-            df, x_select, y_select, z_select, plot_type, dimension, host, path
+            df, x_select, y_select, z_select, t_select, plot_type, dimension, host, path
         )
         return {
             "content": fig.to_html(include_plotlyjs="cdn"),
@@ -119,6 +117,7 @@ def download_data(
         State("x-select", "value"),
         State("y-select", "value"),
         State("z-select", "value"),
+        State("t-select", "value"),
         State("input-host", "value"),
         State("input-path", "value"),
         State("dimensionality-state", "value"),
@@ -132,8 +131,7 @@ def update_figure(
     x_select: str,
     y_select: Union[str, List[str]],
     z_select: str,
-    host: str,
-    path: str,
+    t_select: str,
     dimension: Literal["2D", "3D"],
     plot_type: str,
 ) -> Tuple[Any, str]:
@@ -146,7 +144,7 @@ def update_figure(
     if not isinstance(df, Exception):
 
         fig = get_fig(
-            df, x_select, y_select, z_select, plot_type, dimension, host, path
+            df, x_select, y_select, z_select, t_select, plot_type, dimension, host, path
         )
         warning = ""
     else:
@@ -169,6 +167,7 @@ def get_fig(
     x_select: str,
     y_select: str,
     z_select: str,
+    t_select: str,
     plot_type: str,
     dimension: str,
     host: str,
@@ -181,21 +180,14 @@ def get_fig(
     else:
         plot = getattr(px, plot_type)
 
-        if dimension == "2D":
-            fig = plot(
-                df,
-                x=x_select,
-                y=y_select,
-                title=f"Plotting file: {host}@{path}",
-            )
-        else:  # 3D
-            fig = plot(
-                df,
-                x=x_select,
-                y=y_select,
-                z=z_select,
-                title=f"Plotting file: {host}@{path}",
-            )
+        kwargs = dict(x=x_select, y=y_select, title=f"Plotting file: {host}@{path}")
+        if dimension.startswith("3D"):
+            kwargs["z"] = z_select
+        if dimension.endswith("series"):
+            kwargs["animation_frame"] = t_select
+        # TODO animation group
+
+        fig = plot(df, **kwargs)
 
     return fig
 
@@ -205,9 +197,11 @@ def get_fig(
         Output("x-select", "options"),
         Output("y-select", "options"),
         Output("z-select", "options"),
+        Output("t-select", "options"),
         Output("x-select", "value"),
         Output("y-select", "value"),
         Output("z-select", "value"),
+        Output("t-select", "value"),
         Output("show-filesize", "children"),
         Output("show-filesize", "style"),
         Output("input-host", "value"),
@@ -246,7 +240,7 @@ def update_axis_select(
     if event_id == "url-path" and not addressbar_sw:
         raise PreventUpdate()
     elif event_id == "url-path" and addressbar_sw:
-        host, path, x_sel, y_sel, z_sel, dim = parse_url(url)
+        host, path, x_sel, y_sel, z_sel, t_sel, dim = parse_url(url)
         addressbar_sw = False
 
     try:
@@ -271,6 +265,7 @@ def update_axis_select(
         x_select = labels[indices["x"][0]]  # first data column
         y_select = [labels[i] for i in indices["y"]]  # second data column
         z_select = [labels[i] for i in indices["z"]]  # third data colum
+        t_select = [labels[i] for i in indices["t"]]  # third data colum
         options = [{"label": l, "value": l} for l in labels]
         style = {}
     else:
@@ -286,6 +281,7 @@ def update_axis_select(
             x_select = x_sel
             y_select = y_sel
             z_select = z_sel
+            t_select = t_sel
             plot_clicks += 1
         else:
             plot_clicks = dash.no_update
@@ -300,9 +296,11 @@ def update_axis_select(
         options,
         options,
         options,
+        options,
         x_select,
         y_select,
         z_select,
+        t_select,
         filesize_msg,
         style,
         host,
@@ -319,12 +317,14 @@ def update_axis_select(
         Input("x-select", "value"),
         Input("y-select", "value"),
         Input("z-select", "value"),
+        Input("t-select", "value"),
         Input("dimensionality-state", "value"),
     ],
     prevent_initial_call=True,
 )
 def update_url_select(
-    x_select: str, y_select: List[str], z_select: List[str], dim: str
+    t_select: List[str],
+    dim: str,
 ) -> List[str]:
 
     if x_select:
@@ -335,6 +335,8 @@ def update_url_select(
         search.extend([f"y={y}" for y in y_select])
     if z_select:
         search.extend([f"z={z}" for z in z_select])
+    if t_select:
+        search.extend([f"t={t}" for t in t_select])
     search.extend([f"dim={dim}"])
     search_str = "&".join(search)
 
@@ -428,6 +430,7 @@ def parse_url(url: str):
         x_select = re.findall(PARAM_FIND.format("x"), search)
         y_select = re.findall(PARAM_FIND.format("y"), search)
         z_select = re.findall(PARAM_FIND.format("z"), search)
+        t_select = re.findall(PARAM_FIND.format("t"), search)
         try:
             dim = re.findall(PARAM_FIND.format("dim"), search)[0]
         except IndexError:
@@ -437,19 +440,20 @@ def parse_url(url: str):
         log.debug(f"found in url: x:{x_select}, y:{y_select}, z:{z_select}")
         log.debug(f"dimension is: {dim}")
 
-        if (dim == "2D" and all((x_select, y_select))) or (
-            dim == "3D" and all((x_select, y_select, z_select))
+        if (dim.startswith("2D") and all((x_select, y_select))) or (
+            dim.startswith("3D") and all((x_select, y_select, z_select))
         ):
             x_select = x_select[0]
         else:
             x_select = dash.no_update
             y_select = dash.no_update
             z_select = dash.no_update
+            t_select = dash.no_update
             dim = dash.no_update
 
             log.warning("Could not parse all parameters from url")
 
-        return (host, filename, x_select, y_select, z_select, dim)
+        return (host, filename, x_select, y_select, z_select, t_select, dim)
 
 
 @app.callback(
@@ -458,6 +462,9 @@ def parse_url(url: str):
         Output("z-select", "style"),
         Output("z-axis-label", "style"),
         Output("loading-z-select", "style"),
+        Output("t-select", "style"),
+        Output("t-axis-label", "style"),
+        Output("loading-t-select", "style"),
         Output("plot-type", "options"),
     ],
     [Input("dimensionality-state", "value")],
@@ -465,11 +472,11 @@ def parse_url(url: str):
 )
 def toggle_z_axis(
     toggle_value: str,
-) -> Tuple[bool, "_DS", "_DS", "_DS", "_LDS"]:
+) -> Tuple[bool, "_DS", "_DS", "_DS", "_DS", "_DS", "_DS", "_LDS"]:
 
-    if toggle_value == "2D":
+    if toggle_value.startswith("2D"):
         multiselect_y = True
-        visible = {"display": "none"}
+        visible_z = {"display": "none"}
         plot_type = [
             {"label": "line", "value": "line"},
             {"label": "scatter", "value": "scatter"},
@@ -478,7 +485,7 @@ def toggle_z_axis(
         ]
     else:
         multiselect_y = False  # disable multiselect for 3D
-        visible = {"display": "block"}
+        visible_z = {"display": "block"}
         plot_type = [
             {"label": "line", "value": "line_3d"},
             {"label": "scatter", "value": "scatter_3d"},
@@ -489,4 +496,18 @@ def toggle_z_axis(
             {"label": "surface", "value": "surface"},
         ]
 
-    return multiselect_y, visible, visible, visible, plot_type
+    if toggle_value.endswith("series"):
+        visible_t = {"display": "block"}
+    else:
+        visible_t = {"display": "none"}
+
+    return (
+        multiselect_y,
+        visible_z,
+        visible_z,
+        visible_z,
+        visible_t,
+        visible_t,
+        visible_t,
+        plot_type,
+    )
