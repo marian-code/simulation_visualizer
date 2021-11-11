@@ -5,13 +5,14 @@ from contextlib import contextmanager
 from pathlib import Path
 from socket import gethostname
 from tempfile import TemporaryDirectory
-from typing import IO, TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import IO, TYPE_CHECKING, List, Optional, Tuple, Union, overload
 
+import pandas as pd
 from ssh_utilities import Connection
 from typing_extensions import Literal
 
 try:
-    from typing import final, TypedDict  # python >=3.8 version
+    from typing import TypedDict, final  # type: ignore
 except ImportError:
     from typing_extensions import final, TypedDict
 
@@ -23,15 +24,14 @@ if TYPE_CHECKING:
 
     from pandas import DataFrame
 
-    SUGGEST = TypedDict("SUGGEST", {
-        "x": List[int],
-        "y": List[int],
-        "z": List[int]
-    })
+    SUGGEST = TypedDict(
+        "SUGGEST", {"x": List[int], "y": List[int], "z": List[int], "t": List[int]}
+    )
 
 log = logging.getLogger(__name__)
 
 MAX_PARSE_ATTEMPTS: int = 5
+
 
 class ParserMount(type):
     """Registers new Parsers."""
@@ -43,7 +43,7 @@ class ParserMount(type):
             log.debug("Created Parser Meta Class")
         else:
             cls._parsers.append(cls)
-            log.debug(f"Registered Parser \"{name}\"")
+            log.debug(f'Registered Parser "{name}"')
 
     @property
     def parsers(cls) -> List["FileParser"]:
@@ -78,8 +78,9 @@ class FileParser(metaclass=ParserMount):
     @final
     @classmethod
     @contextmanager
-    def _file_opener(cls, host, path, fileobj: Optional[IO] = None,
-                     copy_method: bool = False) -> IO:
+    def _file_opener(
+        cls, host, path, fileobj: Optional[IO] = None, copy_method: bool = False
+    ) -> IO:
 
         local = True if host == gethostname().lower() else False
 
@@ -127,17 +128,16 @@ class FileParser(metaclass=ParserMount):
         It is also advisable to make the check fast as you don not want to wait
         long for load
         """
-
         with cls._file_opener(host, path) as f:
             line = f.readline()
 
             if cls.header.match(line):
-                log.info(f"parser {cls} can handle {Path(path).name} "
-                         f"file type")
+                log.info(f"parser {cls} can handle {Path(path).name} " f"file type")
                 return True
             else:
-                log.warning(f"parser {cls} cannot handle "
-                            f"{Path(path).name} file type")
+                log.warning(
+                    f"parser {cls} cannot handle " f"{Path(path).name} file type"
+                )
                 return False
 
     # TODO serch for column with name "time" or "step"
@@ -156,14 +156,16 @@ class FileParser(metaclass=ParserMount):
         return {"x": [0], "y": [1], "z": [2], "t": [0]}
 
     @abc.abstractclassmethod
-    def extract_header(cls, path: str, host: str,
-                       fileobj: Optional[IO] = None) -> Tuple[List[str], "SUGGEST"]:
-        """Return a list with column names"""
+    def extract_header(
+        cls, path: str, host: str, fileobj: Optional[IO] = None
+    ) -> Tuple[List[str], "SUGGEST"]:
+        """Return a list with column names."""
         raise NotImplementedError
 
     @abc.abstractclassmethod
-    def extract_data(cls, path: str, host: str,
-                     fileobj: Optional[IO] = None) -> "DataFrame":
+    def extract_data(
+        cls, path: str, host: str, fileobj: Optional[IO] = None
+    ) -> "DataFrame":
         """Return a pandas dataframe for parsed file."""
         raise NotImplementedError
 
@@ -186,26 +188,64 @@ class DataExtractor:
 
     parsers: List[FileParser]
 
-    def __init__(self, path: str, host: str, session_id: str) -> None:
+    def __init__(self, paths: str, hosts: str, session_id: str) -> None:
 
         load_parsers()
         self.parsers = FileParser.parsers
         log.debug(f"got parsers: {', '.join([str(p) for p in self.parsers])}")
 
-        self._path = path
-        self._host = host
+        self._path = paths
+        self._host = hosts
         self._session_id = session_id
 
+    # TODO make more efficient
     def extract(self) -> Union["DataFrame", Exception]:
         with timeit("file read"):
-            return self._get_async("data")
+            if len(self._host) <= 1:
+                self._host = self._host[0]
+                self._path = self._path[0]
+                return self._get_async("data")
+            else:
+                datas = []
+                for h, p in zip(self._host, self._path):
+                    self._host = h
+                    self._path = p
+                    datas.append(self._get_async("data"))
 
+                # TODO this needs to be checked
+                return pd.concat([d.reindex(datas[0].index) for d in datas], axis=1)
+
+    # TODO make more efficient
     def header(self) -> Union[Tuple[List[str], "SUGGEST"], Exception]:
-        return self._get_async("header")
+        if len(self._host) <= 1:
+            self._host = self._host[0]
+            self._path = self._path[0]
+            return self._get_async("header")
+        else:
+            headers = []
+            for h, p in zip(self._host, self._path):
+                self._host = h
+                self._path = p
+                headers.append(self._get_async("header"))
 
-    def _get_async(self, what: Literal["data", "header"]
-                   ) -> Union["DataFrame", Tuple[List[str], "SUGGEST"],
-                              Exception]:
+            cols = [h for header in headers for h in header[0]]
+            # TODO this we can copy x from first and in the others we can shift
+            # TODO column numbers by the numer of entries in previous lists
+            suggest = headers[0][1]
+
+            return cols, suggest
+
+    @overload
+    def _get_async(
+        self, what: Literal["header"]
+    ) -> Union[Tuple[List[str], "SUGGEST"], Exception]:
+        ...
+
+    @overload
+    def _get_async(self, what: Literal["data"]) -> Union["DataFrame", Exception]:
+        ...
+
+    def _get_async(self, what):
 
         with cf.ThreadPoolExecutor(max_workers=len(self.parsers)) as executor:
             future_to_df = {
@@ -218,14 +258,24 @@ class DataExtractor:
                     executor.shutdown(wait=False)
                     return data
             else:
-                log.exception(f"None of the data parsers could extract "
-                              f"{self._path}")
+                log.exception(
+                    f"None of the data parsers could extract " f"{self._path}"
+                )
                 return error
 
-    def _get_one(self, parser: FileParser, what: Literal["data", "header"]
-                 ) -> Tuple[Optional[Exception],
-                            Optional[Union["DataFrame",
-                                           Tuple[List[str], "SUGGEST"]]]]:
+    @overload
+    def _get_one(
+        self, parser: FileParser, what: Literal["header"]
+    ) -> Tuple[Optional[Exception], Optional[Tuple[List[str], "SUGGEST"]]]:
+        ...
+
+    @overload
+    def _get_one(
+        self, parser: FileParser, what: Literal["data"]
+    ) -> Tuple[Optional[Exception], Optional["DataFrame"]]:
+        ...
+
+    def _get_one(self, parser, what):
 
         log.debug(f"trying {what} parser: {parser}")
 
@@ -238,8 +288,7 @@ class DataExtractor:
         for i in range(1, MAX_PARSE_ATTEMPTS + 1):
 
             try:
-                data = getattr(parser, f"extract_{what}", None)(self._path,
-                                                                self._host)
+                data = getattr(parser, f"extract_{what}", None)(self._path, self._host)
             except FileNotFoundError as e:
                 log.warning(e)
                 error = e
@@ -247,10 +296,10 @@ class DataExtractor:
                 log.exception(e)
                 error = e
             else:
-                log.debug(f"{what} parsed successfully: {self._path} "
-                          f"after {i} attempts")
+                log.debug(
+                    f"{what} parsed successfully: {self._path} after {i} attempts"
+                )
                 return data, None
         else:
-            log.warning(f"{what} parser {parser} "
-                        f"failed to extract {self._path}")
+            log.warning(f"{what} parser {parser} failed to extract {self._path}")
             return None, error

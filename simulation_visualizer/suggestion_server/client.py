@@ -154,7 +154,7 @@ def start_server(log_level: int, unique_socket_address: Path):
         logging level to setup server logger
     unique_socket_address: Path
         server <-> client communication socket address, location must be
-        writable
+        writeable
     """
     # delete socket file
     log.debug("removing socket file")

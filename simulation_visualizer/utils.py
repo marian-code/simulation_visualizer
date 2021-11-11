@@ -5,19 +5,24 @@ from contextlib import contextmanager
 from pathlib import Path
 from socket import gethostname
 from time import time
-from typing import Dict
+from typing import Dict, List
 
 from ssh_utilities import Connection
 
 log = logging.getLogger(__name__)
 
 
-def get_file_size(path: str, host: str) -> float:
+# TODO make more effective by grouping hosts
+def get_file_size(paths: List[str], hosts: List[str]) -> float:
 
-    local = True if host == gethostname().lower() else False
+    sizes = 0
+    for path, host in zip(paths, hosts):
+        local = True if host == gethostname().lower() else False
 
-    with Connection(host, local=local, quiet=True) as c:
-        return c.os.stat(path).st_size
+        with Connection(host, local=local, quiet=True) as c:
+            sizes += c.os.stat(path).st_size
+
+    return sizes
 
 
 def sizeof_fmt(num: float, suffix: str = 'B') -> str:

@@ -1,18 +1,13 @@
-from socket import gethostname
 from uuid import uuid4
 
 from dash import dcc
 from dash import html
 from dash_extensions import Download
-from ssh_utilities import Connection
 
 from simulation_visualizer.parser import DataExtractor
 from simulation_visualizer.text import PLUGINS_INTRO, URL_SHARING, USAGE
 
-HOSTS = [{"label": h, "value": h} for h in Connection.get_available_hosts()]
-HOSTS.append(
-    {"label": f"{gethostname().lower()}-local", "value": gethostname().lower()}
-)
+
 PARSERS = {str(p.name): p.description for p in DataExtractor("", "", "").parsers}
 
 
@@ -45,39 +40,11 @@ def serve_layout():
 
     tab_1 = [
         dcc.Location(id="url-path", refresh=False),
-        html.Datalist(id="list-paths", children=[]),
-        # * select file and server controls
-        html.Div(
-            [
-                html.Div(
-                    [
-                        html.Label("Select host PC"),
-                        dcc.Dropdown(
-                            id="input-host",
-                            options=HOSTS,
-                            value="kohn",
-                        ),
-                    ],
-                    className="six columns",
-                ),
-                html.Div(
-                    [
-                        html.Label("Select path to file"),
-                        dcc.Input(
-                            id="input-path",
-                            type="text",
-                            placeholder="/full/path/to/file",
-                            style={"width": "100%"},
-                            list="list-paths",
-                        ),
-                    ],
-                    className="six columns",
-                ),
-            ],
-            className="row",
-        ),
+        # * select file and server controls will be dynamically added here
         html.Div(id="show-path"),
         html.Button(id="submit-button", n_clicks=0, children="Submit"),
+        html.Button(id="add-button", n_clicks=0, children="Add host"),
+        html.Button(id="remove-button", n_clicks=0, children="Remove host"),
         html.Div(id="show-filesize"),
         html.Hr(),
         html.H3(children="Graph controls"),
@@ -95,7 +62,7 @@ def serve_layout():
                                 {"label": "3D-series", "value": "3D-series"},
                             ],
                             value="2D",
-                            labelStyle={'display': 'inline-block'},
+                            labelStyle={"display": "inline-block"},
                         ),
                         html.Label("Select x axis"),
                         dcc.Loading(
@@ -279,6 +246,7 @@ def serve_layout():
             dcc.Tabs(
                 [
                     dcc.Tab(
+                        id="control-tab",
                         label="Controls",
                         children=tab_1,
                         className="custom-tab",

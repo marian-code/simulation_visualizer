@@ -3,6 +3,7 @@ import re
 from atexit import register as register_exit_hook
 from pathlib import Path
 from shutil import rmtree
+from socket import gethostname
 from tempfile import mkdtemp
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
@@ -10,20 +11,27 @@ import dash
 import dash_auth
 import plotly.express as px
 import plotly.graph_objects as go
-from dash import html
-from dash.dependencies import Input, Output, State
+from dash import dcc, html
+from dash.dependencies import ALL, MATCH, Input, Output, State
 from dash.exceptions import PreventUpdate
+from dash_extensions.enrich import ServersideOutput
 from flask_caching import Cache
+from ssh_utilities import Connection
 from typing_extensions import Literal
 
 from simulation_visualizer.layout import serve_layout
 from simulation_visualizer.parser import DataExtractor
 from simulation_visualizer.path_completition import Suggest
 from simulation_visualizer.utils import get_auth, get_file_size, get_root, sizeof_fmt
+try:
+    from typing import TypedDict  # type: ignore
+except ImportError:
+    from typing_extensions import TypedDict
 
 if TYPE_CHECKING:
     _DS = Dict[str, str]
     _LDS = List[_DS]
+    _HOST_DATA = TypedDict("_HOST_DATA", {"path": str, "host": str})
     from pandas import DataFrame
 
 # for some reason this is not encompased by simulation_visualizer logger by default
@@ -39,10 +47,15 @@ CACHE_CONFIG = {
     #'CACHE_TYPE': 'redis',
     #'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379')
 }
-SUGGESTION_SOCKET = "/tmp/user-{}-suggestion_server"
+SUGGESTION_SOCKET = "/tmp/user-{}-id-{}-suggestion_server"
 USER_LIST = get_auth()
 # expected address is: https://simulate.duckdns.org.visualize
 APACHE_URL_SUBDIR = get_root()
+
+HOSTS = [{"label": h, "value": h} for h in Connection.get_available_hosts()]
+HOSTS.append(
+    {"label": f"{gethostname().lower()}-local", "value": gethostname().lower()}
+)
 
 register_exit_hook(rmtree, CACHEFILE)
 
@@ -67,6 +80,8 @@ app.layout = serve_layout
         State("y-select", "value"),
         State("z-select", "value"),
         State("t-select", "value"),
+        State({"type": "input-host", "index": ALL}, "value"),
+        State({"type": "input-path", "index": ALL}, "value"),
         State("dimensionality-state", "value"),
         State("plot-type", "value"),
         State("download-type", "value"),
@@ -80,6 +95,8 @@ def download_data(
     y_select: Union[str, List[str]],
     z_select: str,
     t_select: str,
+    host: List[str],
+    path: List[str],
     dimension: Literal["2D", "3D"],
     plot_type: str,
     download_type: str,
@@ -118,8 +135,8 @@ def download_data(
         State("y-select", "value"),
         State("z-select", "value"),
         State("t-select", "value"),
-        State("input-host", "value"),
-        State("input-path", "value"),
+        State({"type": "input-host", "index": ALL}, "value"),
+        State({"type": "input-path", "index": ALL}, "value"),
         State("dimensionality-state", "value"),
         State("plot-type", "value"),
     ],
@@ -132,11 +149,16 @@ def update_figure(
     y_select: Union[str, List[str]],
     z_select: str,
     t_select: str,
+    host: List[str],
+    path: List[str],
     dimension: Literal["2D", "3D"],
     plot_type: str,
-) -> Tuple[Any, str]:
+) -> Tuple[Any, Any, str]:
 
-    if not path:
+    log.debug(f"update_figure got paths: {path}")
+    log.debug(f"update_figure got hosts: {host}")
+
+    if any([p is None for p in path]):
         raise PreventUpdate()
 
     df = df_cache(path, host, session_id)
@@ -149,14 +171,16 @@ def update_figure(
         warning = ""
     else:
         fig = dash.no_update
-        warning = f"Couln't read {host}@{path}.\nError: {df}"
+        files = ",".join([f"{h}@{p}" for h, p in zip(host, path)])
+        warning = f"Couln't read {files}.\nError: {df}"
+        log.warning(warning)
 
     log.debug("figure ready, sending to user session")
     return fig, fig, warning
 
 
 @cache.memoize(timeout=600)
-def df_cache(path: str, host: str, session_id: str):
+def df_cache(path: List[str], host: List[str], session_id: str):
     log.debug("dataframe not cached yet")
     print("dataframe not cached yet")
     return DataExtractor(path, host, session_id).extract()
@@ -170,8 +194,8 @@ def get_fig(
     t_select: str,
     plot_type: str,
     dimension: str,
-    host: str,
-    path: str,
+    host: List[str],
+    path: List[str],
 ) -> Any:
 
     # surface cannot be done with plotly express
@@ -180,7 +204,13 @@ def get_fig(
     else:
         plot = getattr(px, plot_type)
 
-        kwargs = dict(x=x_select, y=y_select, title=f"Plotting file: {host}@{path}")
+        if len(host) <= 1:
+            title = f"Plotting file: {host[0]}@{path[0]}"
+        else:
+            files = ",".join([f"{h}@{p}" for h, p in zip(host, path)])
+            title = f"Plotting files: {files}"
+
+        kwargs = dict(x=x_select, y=y_select, title=title)
         if dimension.startswith("3D"):
             kwargs["z"] = z_select
         if dimension.endswith("series"):
@@ -192,6 +222,7 @@ def get_fig(
     return fig
 
 
+# TODO split this monstrosity!
 @app.callback(
     [
         Output("x-select", "options"),
@@ -204,8 +235,9 @@ def get_fig(
         Output("t-select", "value"),
         Output("show-filesize", "children"),
         Output("show-filesize", "style"),
-        Output("input-host", "value"),
-        Output("input-path", "value"),
+        Output({"type": "input-host", "index": ALL}, "value"),
+        # TODO ideally separate input-path from here
+        Output({"type": "input-path", "index": ALL}, "value"),
         Output("addressbar-sw", "children"),
         Output("dimensionality-state", "value"),
         Output("plot-button-state", "n_clicks"),
@@ -216,8 +248,8 @@ def get_fig(
         Input("session-id", "children"),
     ],
     [
-        State("input-host", "value"),
-        State("input-path", "value"),
+        State({"type": "input-host", "index": ALL}, "value"),
+        State({"type": "input-path", "index": ALL}, "value"),
         State("addressbar-sw", "children"),
         State("plot-button-state", "n_clicks"),
     ],
@@ -227,11 +259,27 @@ def update_axis_select(
     _,
     url: str,
     session_id: str,
-    host: str,
-    path: str,
+    host: List[str],
+    path: List[str],
     addressbar_sw: bool,
     plot_clicks: int,
-) -> Tuple["_LDS", "_LDS", "_LDS", str, str, str, str, "_DS", str, str, bool, int, int]:
+) -> Tuple[
+    "_LDS",
+    "_LDS",
+    "_LDS",
+    "_LDS",
+    str,
+    str,
+    str,
+    str,
+    str,
+    "_DS",
+    str,
+    str,
+    bool,
+    int,
+    int,
+]:
 
     if not dash.callback_context.triggered:
         raise PreventUpdate("No trigering event")
@@ -253,7 +301,10 @@ def update_axis_select(
     log.debug(f"got axis options: {data}")
 
     byte_size = get_file_size(path, host)
-    filesize_msg = f"File size is: {sizeof_fmt(byte_size)}"
+    if len(host) == 1:
+        filesize_msg = f"File size is: {sizeof_fmt(byte_size)}"
+    else:
+        filesize_msg = f"Combined size of all files is: {sizeof_fmt(byte_size)}"
 
     if byte_size > 1e6:
         filesize_msg += ", plotting and export might take a while"
@@ -286,8 +337,9 @@ def update_axis_select(
         else:
             plot_clicks = dash.no_update
     else:
-        host = dash.no_update
-        path = dash.no_update
+        # must be at least of length 1, and upon init it is 0
+        host = [dash.no_update] * max(len(host), 1)
+        path = [dash.no_update] * max(len(host), 1)
         dim = dash.no_update
         addressbar_sw = dash.no_update
         plot_clicks = dash.no_update
@@ -323,6 +375,9 @@ def update_axis_select(
     prevent_initial_call=True,
 )
 def update_url_select(
+    x_select: str,
+    y_select: List[str],
+    z_select: List[str],
     t_select: List[str],
     dim: str,
 ) -> List[str]:
@@ -345,52 +400,189 @@ def update_url_select(
 
 @app.callback(
     Output("show-path", "children"),
-    [Input("input-host", "value"), Input("input-path", "value")],
+    [
+        Input({"type": "input-host", "index": ALL}, "value"),
+        Input({"type": "input-path", "index": ALL}, "value"),
+    ],
     prevent_initial_call=True,
 )
-def update_output(host: str, filename: str):
-    return f"Selected file is: {host}@{filename}"
+def update_output(host: List[str], path: List[str]):
+    if len(host) <= 1:
+        return f"Selected file is: {host[0]}@{path[0]}"
+    else:
+        files = ",".join([f"{h}@{p}" for h, p in zip(host, path)])
+        return f"Selected files are: {files}"
 
 
 @app.callback(
     [
-        Output("list-paths", "children"),
         Output("url-path", "pathname"),
         Output("url-path", "hash"),
     ],
     [
-        Input("input-host", "value"),
-        Input("input-path", "value"),
-        Input("session-id", "children"),
+        Input({"type": "path-store", "index": ALL}, "data"),
     ],
     [State("url-path", "href")],
     prevent_initial_call=False,
 )
-def suggest_path(host: str, filename: Optional[str], session_id: str, href: str):
+def update_ulr(host_data: "_HOST_DATA", href: str) -> Tuple[str, str]:
 
-    if not filename:
-        filename = ""
+    log.debug(f"url href: {href}")
 
-    log.debug(f"url pathname: {filename}")
+    filenames = [hd["path"] for hd in host_data]
+    hosts = [hd["host"] for hd in host_data]
+
+    for i, filename in enumerate(filenames):
+
+        # when running through apache in https://simulate.duckdns.org/visualize
+        # this is needed because dash will overwrite the subdir component
+        if APACHE_URL_SUBDIR in href and not filename.startswith(
+            f"/{APACHE_URL_SUBDIR}"
+        ):
+            filename = f"/{APACHE_URL_SUBDIR}{filename}"
+
+        filenames[i] = filename
+
+    filename = "|".join(filenames)
+    host = "#" + "|".join(hosts)
+
+    return filename, host
+
+
+# TODO we would like to output path into input-path here, so we can shorten it when
+# TODO it is wrong for some reason. But it is already taken
+# TODO by other callback - update_axis_select
+@app.callback(
+    [
+        Output({"type": "list-paths", "index": MATCH}, "children"),
+        ServersideOutput({"type": "path-store", "index": MATCH}, "data"),
+    ],
+    [
+        Input({"type": "input-host", "index": MATCH}, "value"),
+        Input({"type": "input-path", "index": MATCH}, "value"),
+        Input({"type": "input-host", "index": MATCH}, "id"),
+        Input("session-id", "children"),
+    ],
+    prevent_initial_call=False,
+)
+def suggest_path(
+    host: str, path: Optional[str], match_id: dict, session_id: str
+) -> Tuple[List[html.Datalist], "_HOST_DATA"]:
+    if not path:
+        path = ""
+
+    log.debug(f"url hostname: {host}")
+    log.debug(f"url pathname: {path}")
     log.info(f"unique user session id is: {session_id}")
 
     dirs = Suggest("get_dirs")(
         host, filename, Path(SUGGESTION_SOCKET.format(session_id))
+    # we are outputing a whole Datalist into respective Div children. This is a
+    # workaround, because we cannot pass pattern-matching dict id to Input(list=<here>)
+    return (
+        [
+            html.Datalist(
+                id=f"list-paths-{match_id['index']}",
+                children=[html.Option(value=d) for d in dirs],
+            )
+        ],
+        {"path": path, "host": host},
     )
 
-    log.debug(f"url href: {href}")
 
-    # when running through apache in https://simulate.duckdns.org/visualize
-    # this is needed because dash will overwrite the subdir component
-    if APACHE_URL_SUBDIR in href and not filename.startswith(f"/{APACHE_URL_SUBDIR}"):
-        filename = f"/{APACHE_URL_SUBDIR}{filename}"
+# TODO trigger re-submit to load new cols upon remove
+# TODO color delete button in red when last element is to be removed
+@app.callback(
+    Output("control-tab", "children"),
+    [Input("add-button", "n_clicks"), Input("remove-button", "n_clicks")],
+    State("control-tab", "children"),
+    prevent_initial_call=False,
+)
+def change_host(n_clicks: int, _, tab: List[Any]) -> List[Any]:
+    event_id = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
 
-    return [html.Option(value=d) for d in dirs], filename, f"#{host}"
+    print("event_id", event_id)
+
+    if event_id in ("add-button", ""):
+        return add_host(n_clicks, tab)
+    else:
+        #return tab
+        return remove_host(tab)
 
 
+def add_host(n_clicks: int, tab: List[Any]) -> html.Div:
+    selector = html.Div(
+        [
+            html.Div(
+                [
+                    html.Label("Select host PC"),
+                    dcc.Dropdown(
+                        id={"type": "input-host", "index": n_clicks},
+                        options=HOSTS,
+                        value="kohn",
+                    ),
+                ],
+                className="two columns",
+            ),
+            html.Div(
+                [
+                    html.Label("Select path to file"),
+                    dcc.Input(
+                        id={"type": "input-path", "index": n_clicks},
+                        type="text",
+                        placeholder="/full/path/to/file",
+                        style={"width": "100%"},
+                        list=f"list-paths-{n_clicks}",
+                    ),
+                ],
+                className="nine columns",
+            ),
+            dcc.Store(
+                id={"type": "path-store", "index": n_clicks},
+                data={"path": "", "host": ""},
+            ),
+            html.Div(
+                id={"type": "list-paths", "index": n_clicks},
+                children=html.Datalist(id=f"list-paths-{n_clicks}", children=[]),
+                hidden=True,
+            ),
+        ],
+        className="row",
+        id=f"path-selector-{n_clicks}"
+    )
+
+    tab.insert(1, selector)
+    return tab
+
+
+def remove_host(tab: List[Any]) -> List[Any]:
+    log.info("preparing to delete path selector")
+    # not all elements have ids
+    ids = []
+    for element in tab:
+        if "props" in element:
+            if "id" in element["props"]:
+                ids.append(element["props"]["id"])
+    log.debug(f"found elements ids: {ids}")
+
+    n_selectors = sum(["path-selector" in i for i in ids])
+    log.debug(f"found {n_selectors} path selector elements")
+
+    # delete from the last inserted
+    if n_selectors > 1:
+        for index, i in reversed(enumerate(ids)):
+            if "path-selector" in i:
+                del tab[index]
+                log.info("succesfully deleted one path selector")
+                break
+    else:
+        log.warning("only one path selector is left, we cannot delete that")
+
+    return tab
+
+
+# TODO check if paths for more files are parsed correctly, they probably are not
 def parse_url(url: str):
-    # URL = r"https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d*"
-    # DATA = r"(.*?)\?(.*?)#(?!.*#)(.*)"
 
     URL_NUM = r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d*"
     URL_STR = r".*?/visualize"
@@ -421,7 +613,6 @@ def parse_url(url: str):
             filename, search, host = data
         else:
             _, host = data
-            # TODO ################################################
             # TODO visualize component in url is getting overwritten
             filename = ""
             search = ""
@@ -435,7 +626,7 @@ def parse_url(url: str):
             dim = re.findall(PARAM_FIND.format("dim"), search)[0]
         except IndexError:
             log.warning("could not parse dimension from url, defaulting to 2")
-            dim = 2
+            dim = "2D"
 
         log.debug(f"found in url: x:{x_select}, y:{y_select}, z:{z_select}")
         log.debug(f"dimension is: {dim}")
@@ -453,6 +644,9 @@ def parse_url(url: str):
 
             log.warning("Could not parse all parameters from url")
 
+        # split host and filenames  which are separated by delimiter '|'
+        host = host.split("|")
+        filename = filename.split("|")
         return (host, filename, x_select, y_select, z_select, t_select, dim)
 
 
