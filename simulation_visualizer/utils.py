@@ -1,16 +1,17 @@
 import argparse
 import logging
 import os
+from configparser import ConfigParser
 from contextlib import contextmanager
+from functools import wraps
+from json import loads
 from pathlib import Path
 from socket import gethostname
 from time import time
-from typing import Dict, List
+from typing import Callable, Dict, List
+
+import dash
 from pbs_wrapper.settings import CONFIG_DIR, MODULE_DIR
-from json import loads
-from configparser import ConfigParser
-
-
 from ssh_utilities import Connection
 
 log = logging.getLogger(__name__)
@@ -94,6 +95,24 @@ def get_python() -> Path:
     return p
 
 
+class Context:
+
+    def __init__(self) -> None:
+        self.triggered = dash.callback_context.triggered
+        # e.g.: [{'prop_id': 'add-button.n_clicks', 'value': 1}]
+        self.id: str = self.triggered[0]["prop_id"].split(".")[0]
+
+
+def callback_info(function: Callable) -> Callable:
+
+    @wraps
+    def decorator(*args, **kwargs):
+        log.info(f"firing callback: {function.__name__} triggered by: {Context().id}")
+        return function(*args, **kwargs)
+
+    return decorator
+
+
 def get_qstat_col_names():
 
     def _getdict(value):
@@ -104,18 +123,23 @@ def get_qstat_col_names():
         return loads(value)
 
     template = "BASE"
+    ini = "qstat.ini"
 
     config = ConfigParser(allow_no_value=True,
                           converters={"dict": _getdict})
 
-    if (CONFIG_DIR / "qstat.ini").is_file():
-        config_file = CONFIG_DIR / "qstat.ini"
-        config.read(config_file)
+    if (CONFIG_DIR / ini).is_file():
+        config_file = CONFIG_DIR / ini
+        config.read(config_file, encoding="utf-8")
     else:
         # it is not clear whether we will have write access in this directory
         config_file = None
-        config.read(MODULE_DIR / "config" / "qstat.ini")
+        config.read(MODULE_DIR / "config" / ini)
 
     config[template].pop("user_assigned_id")
 
     return list(config[template].keys())
+
+
+# column names for qstat
+DEFAULT_COL_NAMES = get_qstat_col_names()

@@ -1,6 +1,6 @@
 import logging
 from socket import gethostname
-from typing import TYPE_CHECKING, Dict, List, Union
+from typing import TYPE_CHECKING, Dict, List, Tuple, Union
 
 from ssh_utilities import Connection
 
@@ -54,7 +54,7 @@ class Completion:
 
         return self._c
 
-    def get_dirs(self, host: str, input_path: str) -> List[str]:
+    def get_dirs(self, host: str, input_path: str) -> Tuple[str, List[str]]:
         """Suggest dirs on remote server to submit to.
 
         Parameters
@@ -136,7 +136,7 @@ class Suggest:
         self.function = function_name
 
     def __call__(self, host: str, filename: str, unique_socket_address: "Path"
-                 ) -> List[str]:
+                 ) -> Tuple[str, List[str]]:
         """Proxy for autocompleter methods.
 
         Parameters

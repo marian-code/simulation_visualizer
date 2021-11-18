@@ -2,13 +2,15 @@ from uuid import uuid4
 
 from dash import dcc
 from dash import html
-from dash_table import DataTable
+from dash.dash_table import DataTable
 from dash_extensions import Download
 
 from simulation_visualizer.parser import DataExtractor
 from simulation_visualizer.text import PLUGINS_INTRO, URL_SHARING, USAGE
+from pbs_wrapper.settings import TEMPLATE
+from simulation_visualizer.utils import DEFAULT_COL_NAMES
 
-
+#DEFAULT_COL_NAMES = [""]
 PARSERS = {str(p.name): p.description for p in DataExtractor("", "", "").parsers}
 
 
@@ -70,7 +72,11 @@ def serve_layout():
                             id="loading-x_select",
                             type="default",
                             children=[
-                                html.Div(dcc.Dropdown(id="x-select", options=[]))
+                                html.Div(
+                                    dcc.Dropdown(
+                                        id={"type": "select", "index": "x"}, options=[]
+                                    )
+                                )
                             ],
                         ),
                         html.Label("Select y axis"),
@@ -79,7 +85,11 @@ def serve_layout():
                             type="default",
                             children=[
                                 html.Div(
-                                    dcc.Dropdown(id="y-select", options=[], multi=True)
+                                    dcc.Dropdown(
+                                        id={"type": "select", "index": "y"},
+                                        options=[],
+                                        multi=True,
+                                    )
                                 )
                             ],
                         ),
@@ -95,7 +105,7 @@ def serve_layout():
                             children=[
                                 html.Div(
                                     dcc.Dropdown(
-                                        id="z-select",
+                                        id={"type": "select", "index": "z"},
                                         options=[],
                                         style={"display": "none"},
                                     )
@@ -114,7 +124,7 @@ def serve_layout():
                             children=[
                                 html.Div(
                                     dcc.Dropdown(
-                                        id="t-select",
+                                        id={"type": "select", "index": "t"},
                                         options=[],
                                         style={"display": "none"},
                                     )
@@ -255,6 +265,16 @@ def serve_layout():
                 page_current=0,
                 page_size=10,
             ),
+            html.P(
+                children="Select desired columns "
+                "(empty will give you the default selection):"
+            ),
+            dcc.Dropdown(
+                id="table-cols",
+                options=[{"label": k, "value": k} for k in TEMPLATE.keys()],
+                value=DEFAULT_COL_NAMES,
+                multi=True,
+            ),
         ]
     )
 
@@ -269,30 +289,39 @@ def serve_layout():
                 [
                     dcc.Tab(
                         id="control-tab",
+                        value="control-tab",
                         label="Controls",
                         children=tab_1,
                         className="custom-tab",
                         selected_className="custom-tab--selected",
                     ),
                     dcc.Tab(
+                        id="graph-tab",
+                        value="graph-tab",
                         label="Fullscreen Graph",
                         children=tab_2,
                         className="custom-tab",
                         selected_className="custom-tab--selected",
                     ),
                     dcc.Tab(
+                        id="manual-tab",
+                        value="manual-tab",
                         label="Manual",
                         children=tab_3,
                         className="custom-tab",
                         selected_className="custom-tab--selected",
                     ),
                     dcc.Tab(
+                        id="qstat-tab",
+                        value="qstat-tab",
                         label="Qstat",
                         children=tab_4,
                         className="custom-tab",
                         selected_className="custom-tab--selected",
                     ),
                 ],
+                id="app-tabs",
+                value="control-tab",
                 parent_className="custom-tabs",
                 className="custom-tabs-container",
             ),
