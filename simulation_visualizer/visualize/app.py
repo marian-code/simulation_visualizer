@@ -19,6 +19,6 @@ app = dash.Dash(
     external_stylesheets=EXTERNAL_STYLESHEETS,
     requests_pathname_prefix=f"/{APACHE_URL_SUBDIR}/" if APACHE_URL_SUBDIR else "/",
 )
-app.title = f"Simulation visualizer"
+app.title = f"Simulation visualizer - v{__version__}"
 auth = dash_auth.BasicAuth(app, USER_LIST)
 app.layout = serve_layout

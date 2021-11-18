@@ -12,12 +12,15 @@ PKG_ROOT = Path(__file__).parent
 # Read package constants
 README = (PKG_ROOT / "README.md").read_text()
 REQUIREMENTS = (PKG_ROOT / "requirements.txt").read_text().split("\n")
+VERSION = (
+    (PKG_ROOT / "simulation_visualizer" / "version.py").read_text().split(" = ")[1]
+)
 
 
 # This call to setup() does all the work
 setup(
     name="simulation-visualizer",
-    version="0.0.1",
+    version=VERSION,
     description="web app to display any simulation progress",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -42,7 +45,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
-        "Typing :: Typed"
+        "Typing :: Typed",
     ],
     packages=find_packages(exclude=("setup", "tests")),
     include_package_data=True,
@@ -50,9 +53,9 @@ setup(
     extras_require={"test": ["unittest"] + REQUIREMENTS},
     python_requires=">=3.6",
     entry_points={
-        'console_scripts': [
-            'visualizer = simulation_visualizer.__main__:main',
-            'visualizer-conf = simulation_visualizer.templates:main'
+        "console_scripts": [
+            "visualizer = simulation_visualizer.__main__:main",
+            "visualizer-conf = simulation_visualizer.templates:main",
         ],
     },
 )
