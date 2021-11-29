@@ -7,13 +7,13 @@ from typing import IO, TYPE_CHECKING, List, Optional, Tuple
 import pandas as pd
 
 if TYPE_CHECKING:
-    from simulation_visualizer.parser import SUGGEST
+    from simulation_visualizer.file.parser_meta import SUGGEST
 
 # add FileParser to path by manipulating sys path if you are not working
 # directly in package dir
 # import sys
 # sys.path.append("/path/to/FileParser")
-from simulation_visualizer.parser import FileParser
+from simulation_visualizer.file.parser_meta import FileParser
 
 
 # all plugin parsers must be subclasses of FileParser and override its two
@@ -23,6 +23,9 @@ class ExampleParser(FileParser):
 
     # name is arbitrarry, but should be unique to parser
     name = "Example-file"
+    # expected filename is a standard filename used by the program, is tandard filenames
+    # are used, this speeds up parser selection
+    expected_filename = "example.filename"
     # header should uniquelly define each type of file,
     # based on this re pattern can_handle() method in base class will decide
     # if this parser is suitable for suplied type of file

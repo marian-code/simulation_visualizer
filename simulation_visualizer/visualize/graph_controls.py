@@ -4,11 +4,17 @@ from typing import TYPE_CHECKING, Dict, List, Tuple
 import dash
 from dash.dependencies import ALL, Input, Output, State
 from dash.exceptions import PreventUpdate
+from simulation_visualizer.file import DataExtractor
+from simulation_visualizer.utils import (Context, callback_info, get_file_size,
+                                         sizeof_fmt)
 
-from simulation_visualizer.parser import DataExtractor
-from simulation_visualizer.utils import Context, get_file_size, sizeof_fmt, callback_info
 from .app import app
 from .url import parse_url
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal  # type: ignore
 
 if TYPE_CHECKING:
     _DS = Dict[str, str]
@@ -45,6 +51,7 @@ log = logging.getLogger(__name__)
         State({"type": "input-path", "index": ALL}, "value"),
         State("addressbar-sw", "children"),
         State("plot-button-state", "n_clicks"),
+        State("file-merge", "value"),
     ],
     prevent_initial_call=True,
 )
@@ -56,25 +63,22 @@ def update_axis_select(
     path: List[str],
     addressbar_sw: bool,
     plot_clicks: int,
+    file_merge: Literal["merge", "parallel"],
 ) -> Tuple[
-    "_LDS",
-    "_LDS",
-    "_LDS",
-    "_LDS",
+    List["_LDS"],
     str,
-    str,
-    str,
-    str,
+    List[str],
+    List[str],
+    List[str],
     str,
     "_DS",
-    str,
-    str,
+    List[str],
+    List[str],
     bool,
     int,
     int,
 ]:
     context = Context()
-    print(dash.callback_context.triggered[0]["prop_id"].split(".")[0])
     log.info(
         f"update_axis_select() triggered by: {context.id}, "
         f"addressbar_sw is: {addressbar_sw}, plot_clicks: {plot_clicks}"
@@ -90,15 +94,14 @@ def update_axis_select(
         addressbar_sw = False
 
     try:
-        data = DataExtractor(path, host, session_id).header()
+        data = DataExtractor(path, host, session_id).header(mode=file_merge)
     except FileNotFoundError:
         msg = (
             "File does not exist or path points to dir or you "
             "have insufficient permissions to read it"
         )
         log.warning(msg)
-        #raise PreventUpdate(msg)
-        return ([dash.no_update] * 4, *[dash.no_update] * 11)
+        return ([dash.no_update] * 4, *[dash.no_update] * 11)  # raise PreventUpdate(msg)
     log.debug(f"got axis options: {data}")
 
     byte_size = get_file_size(path, host)
@@ -118,7 +121,7 @@ def update_axis_select(
         y_select = [labels[i] for i in indices["y"]]  # second data column
         z_select = [labels[i] for i in indices["z"]]  # third data colum
         t_select = [labels[i] for i in indices["t"]]  # third data colum
-        options = [{"label": l, "value": l} for l in labels]
+        options = [{"label": lab, "value": lab} for lab in labels]
         style = {}
     else:
         x_select = ""

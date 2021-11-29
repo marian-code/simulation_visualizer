@@ -1,15 +1,16 @@
 import logging
 from pathlib import Path
 from socket import gethostname
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
+import dash
 from dash import dcc, html
 from dash.dependencies import ALL, MATCH, Input, Output, State
 from dash_extensions.enrich import ServersideOutput
-from ssh_utilities import Connection
-
 from simulation_visualizer.path_completition import Suggest
 from simulation_visualizer.utils import Context
+from ssh_utilities import Connection
+
 from .app import app
 
 try:
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-HOSTS = [{"label": h, "value": h} for h in Connection.get_available_hosts()]
+HOSTS = [{"label": h, "value": h} for h in sorted(Connection.get_available_hosts())]
 HOSTS.append(
     {"label": f"{gethostname().lower()}-local", "value": gethostname().lower()}
 )
@@ -32,18 +33,35 @@ SUGGESTION_SOCKET = "/tmp/user-{}-id-{}-suggestion_server"
 # TODO trigger re-submit to load new cols upon remove
 # TODO color delete button in red when last element is to be removed
 @app.callback(
-    Output("control-tab", "children"),
+    [
+        Output("control-tab", "children"),
+        Output("file-merge", "style"),
+        Output("file-merge", "value"),
+    ],
     [Input("add-button", "n_clicks"), Input("remove-button", "n_clicks")],
     State("control-tab", "children"),
     prevent_initial_call=False,
 )
-def change_host(n_clicks: int, _, tab: List[Any]) -> List[Any]:
+def change_host(n_clicks: int, _, tab: List[Any]) -> Tuple[List[Any], Dict[str, str]]:
     event_id = Context().id
 
     if event_id in ("add-button", ""):
-        return add_host(n_clicks, tab)
+        shift = 1
+        tab = add_host(n_clicks, tab)
     else:
-        return remove_host(tab)
+        shift = -1
+        tab = remove_host(tab)
+
+    # TODO this is a verid shit after first add we still have one path selector
+    # TODO and after first remove the number of found selectors does not change too
+    if get_n_selectors(tab)[0] + shift > 1:
+        visible = {"display": "block"}
+        merge_setting = dash.no_update
+    else:
+        visible = {"display": "none"}
+        merge_setting = "parallel"
+
+    return tab, visible, merge_setting
 
 
 def add_host(n_clicks: int, tab: List[Any]) -> html.Div:
@@ -84,7 +102,7 @@ def add_host(n_clicks: int, tab: List[Any]) -> html.Div:
             ),
         ],
         className="row",
-        id=f"path-selector-{n_clicks}"
+        id=f"path-selector-{n_clicks}",
     )
 
     tab.insert(1, selector)
@@ -93,16 +111,8 @@ def add_host(n_clicks: int, tab: List[Any]) -> html.Div:
 
 def remove_host(tab: List[Any]) -> List[Any]:
     log.info("preparing to delete path selector")
-    # not all elements have ids
-    element_ids = []
-    for element in tab:
-        if "props" in element:
-            if "id" in element["props"]:
-                element_ids.append(element["props"]["id"])
-    log.debug(f"found element ids: {element_ids}")
 
-    n_selectors = sum(["path-selector" in i for i in element_ids])
-    log.debug(f"found {n_selectors} path selector elements")
+    n_selectors, element_ids = get_n_selectors(tab)
 
     # delete from the last inserted
     if n_selectors > 1:
@@ -115,6 +125,22 @@ def remove_host(tab: List[Any]) -> List[Any]:
         log.warning("only one path selector is left, we cannot delete that")
 
     return tab
+
+
+def get_n_selectors(tab: List[Any]) -> Tuple[int, List[str]]:
+
+    # not all elements have ids
+    element_ids = []
+    for element in tab:
+        if "props" in element:
+            if "id" in element["props"]:
+                element_ids.append(element["props"]["id"])
+    log.debug(f"found element ids: {element_ids}")
+
+    n_selectors = sum(["path-selector" in i for i in element_ids])
+    log.debug(f"found {n_selectors} path selector elements")
+
+    return n_selectors, element_ids
 
 
 @app.callback(
@@ -134,8 +160,9 @@ def update_output(host: List[str], path: List[str]):
 
 
 # TODO upon delete somehow plot button fires and plot tries to update???
-# TODO we would like to output path into input-path here, so we can shorten it when
-# it is wrong for some reason. But it is already taken by other callback - update_axis_select
+# TODO we would like to output path into input-path here, so we can shorten it
+# TODO when it is wrong for some reason. But it is already taken by other
+# TODO callback - update_axis_select
 @app.callback(
     [
         Output({"type": "list-paths", "index": MATCH}, "children"),
@@ -174,4 +201,3 @@ def suggest_path(
         ],
         {"path": path, "host": host},
     )
-

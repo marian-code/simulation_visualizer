@@ -2,15 +2,16 @@ import re
 from typing import IO, TYPE_CHECKING, List, Optional, Tuple
 
 import pandas as pd
-from simulation_visualizer.parser import FileParser
+from simulation_visualizer.file.parser_meta import FileParser
 
 if TYPE_CHECKING:
-    from simulation_visualizer.parser import SUGGEST
+    from simulation_visualizer.file.parser_meta import SUGGEST
 
 
 class DeepMDTrainParserV1(FileParser):
 
     name = "DeepMD-lcurve-v1"
+    expected_filename = "lcurve.out"
     header = re.compile(
         r"#\s*batch\s*l2_tst\s*l2_trn\s*l2_e_tst\s*l2_e_trn\s*"
         r"l2_f_tst  l2_f_trn\s*l2_v_tst\s*l2_v_trn\s*lr", re.I

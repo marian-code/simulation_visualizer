@@ -1,20 +1,20 @@
-from dash.dependencies import Input, Output, State, ALL
-
-from simulation_visualizer.utils import Context
-from .app import app
-from typing import List, Union, Dict, TYPE_CHECKING, Tuple, Any
 import logging
-from .cache import df_cache
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
+
+import dash
 import plotly.express as px
 import plotly.graph_objects as go
-import dash
+from dash.dependencies import ALL, Input, Output, State
 from dash.exceptions import PreventUpdate
+from simulation_visualizer.utils import Context
 
+from .app import app
+from .cache import df_cache
 
 try:
-    from typing import Literal  # type: ignore
+    from typing import Literal
 except ImportError:
-    from typing_extensions import Literal
+    from typing_extensions import Literal  # type: ignore
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -23,7 +23,6 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-# TODO implement every n-th row save and plot
 @app.callback(
     Output("download", "data"),
     [Input("download-button", "n_clicks"), Input("session-id", "children")],
@@ -37,6 +36,7 @@ log = logging.getLogger(__name__)
         State("dimensionality-state", "value"),
         State("plot-type", "value"),
         State("download-type", "value"),
+        State("file-merge", "value"),
     ],
     prevent_initial_call=True,
 )
@@ -52,6 +52,7 @@ def download_data(
     dimension: Literal["2D", "3D"],
     plot_type: str,
     download_type: str,
+    file_merge: Literal["merge", "parallel"],
 ) -> Dict[str, str]:
 
     log.info(f"requested download type is: {download_type}")
@@ -66,13 +67,24 @@ def download_data(
         }
     elif download_type == "html":
         fig = get_fig(
-            df, x_select, y_select, z_select, t_select, plot_type, dimension, host, path
+            df,
+            x_select,
+            y_select,
+            z_select,
+            t_select,
+            plot_type,
+            dimension,
+            True if file_merge == "merge" else False,
+            host,
+            path,
         )
         return {
             "content": fig.to_html(include_plotlyjs="cdn"),
             "filename": "data.html",
             "mimetype": "text/html",
         }
+    else:
+        raise RuntimeError(f"wrong download_type: {download_type}")
 
 
 @app.callback(
@@ -91,6 +103,7 @@ def download_data(
         State({"type": "input-path", "index": ALL}, "value"),
         State("dimensionality-state", "value"),
         State("plot-type", "value"),
+        State("file-merge", "value"),
     ],
     prevent_initial_call=True,
 )
@@ -105,22 +118,33 @@ def update_figure(
     path: List[str],
     dimension: Literal["2D", "3D"],
     plot_type: str,
+    file_merge: Literal["merge", "parallel"],
 ) -> Tuple[Any, Any, str]:
 
-    print(dash.callback_context.triggered[0]["prop_id"].split(".")[0])
-    log.info(f"update_figure() triggered by: {Context().id} , plot_clicks: {plot_clicks}")
+    log.info(
+        f"update_figure() triggered by: {Context().id} , plot_clicks: {plot_clicks}"
+    )
     log.debug(f"update_figure got paths: {path}")
     log.debug(f"update_figure got hosts: {host}")
 
     if any([p is None for p in path]):
         raise PreventUpdate()
 
-    df = df_cache(path, host, session_id)
+    df = df_cache(path, host, session_id, file_merge)
 
     if not isinstance(df, Exception):
 
         fig = get_fig(
-            df, x_select, y_select, z_select, t_select, plot_type, dimension, host, path
+            df,
+            x_select,
+            y_select,
+            z_select,
+            t_select,
+            plot_type,
+            dimension,
+            True if file_merge == "merge" else False,
+            host,
+            path,
         )
         warning = ""
     else:
@@ -136,11 +160,12 @@ def update_figure(
 def get_fig(
     df: "DataFrame",
     x_select: str,
-    y_select: str,
+    y_select: Union[str, List[str]],
     z_select: str,
     t_select: str,
     plot_type: str,
     dimension: str,
+    merge: bool,
     host: List[str],
     path: List[str],
 ) -> Any:
@@ -158,6 +183,9 @@ def get_fig(
             title = f"Plotting files: {files}"
 
         kwargs = dict(x=x_select, y=y_select, title=title)
+        # for multiindex merged dataframes
+        if merge:
+            kwargs["color"] = "color"
         if dimension.startswith("3D"):
             kwargs["z"] = z_select
         if dimension.endswith("series"):

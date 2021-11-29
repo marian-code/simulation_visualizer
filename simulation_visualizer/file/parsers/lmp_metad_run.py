@@ -4,22 +4,24 @@ from typing import IO, TYPE_CHECKING, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from simulation_visualizer.parser import FileParser
+from simulation_visualizer.file.parser_meta import FileParser
 
 if TYPE_CHECKING:
-    from simulation_visualizer.parser import SUGGEST
+    from simulation_visualizer.file.parser_meta import SUGGEST
 
 
 class LammpsMetaDParser(FileParser):
 
     name = "LAMMPS-MetaD"
     header = re.compile(r"LAMMPS\s*\(\S*\s*\S*\s*\S*\)")
+    expected_filename = "log.lammps"
     description = (
         "Extracts data from LAMMPS log file. This is not a fixes format and "
         "paser could break if the lammps log file format is changed. LAMMPS "
         "log files can have broad range of possible formats. So naturally "
         "some limitations apply. If more 'run' commands are present only the "
-        "output of hte first one will be extracted. 'thermo_style' must be "
+        "output of the first one will be extracted. There can be however any number of "
+        "relaxations before the md run 'thermo_style' must be "
         "set to custom and 'thermo_modify' cannot be multiline."
     )
 
@@ -52,9 +54,17 @@ class LammpsMetaDParser(FileParser):
 
             header = cls.extract_header(host, path, f)[0]
 
+            # this is to avoid reading relaxations, we start searching for start
+            # only after passing run command
+            run_start = False
+            for line in f:
+                if re.match(r"\s*run\s+\d+", line, re.I):
+                    run_start = True
+                    break
+
             # continue to search fro start of thermo output
             for line in f:
-                if "Per MPI rank memory allocation" in line:
+                if "Per MPI rank memory allocation" in line and run_start:
                     # now file iterator is set to start of thermo output
                     f.readline()
                     break
@@ -66,7 +76,7 @@ class LammpsMetaDParser(FileParser):
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 data = np.genfromtxt(f, comments="#", invalid_raise=False)
-                        
+
             # convert to dataframe
             df = pd.DataFrame(data=data, columns=header)
 

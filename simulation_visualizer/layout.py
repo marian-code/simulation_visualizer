@@ -5,7 +5,7 @@ from dash import html
 from dash.dash_table import DataTable
 from dash_extensions import Download
 
-from simulation_visualizer.parser import DataExtractor
+from simulation_visualizer.file import DataExtractor
 from simulation_visualizer.text import PLUGINS_INTRO, URL_SHARING, USAGE
 from pbs_wrapper.settings import TEMPLATE
 from simulation_visualizer.utils import DEFAULT_COL_NAMES
@@ -66,6 +66,16 @@ def serve_layout():
                             ],
                             value="2D",
                             labelStyle={"display": "inline-block"},
+                        ),
+                        dcc.RadioItems(
+                            id="file-merge",
+                            options=[
+                                {"label": "merge", "value": "merge"},
+                                {"label": "parallel", "value": "parallel"},
+                            ],
+                            value="parallel",
+                            labelStyle={"display": "inline-block"},
+                            style={"display": "none"},
                         ),
                         html.Label("Select x axis"),
                         dcc.Loading(
@@ -187,7 +197,7 @@ def serve_layout():
         ),
         html.Hr(),
         html.P(
-            children=f"Currently available parsers are: " f"{', '.join(PARSERS.keys())}"
+            children=f"Currently available parsers are: {', '.join(PARSERS.keys())}"
         ),
         html.Div(id="addressbar-sw", children=True, style={"display": "none"}),
     ]
@@ -282,7 +292,7 @@ def serve_layout():
         children=[
             html.H1(children="Simulation visualizer"),
             html.P(
-                children="A Dash web application for displaying progress of simulations."
+                children="A Dash web application for displaying progress of simulations"
             ),
             html.Div(session_id, id="session-id", style={"display": "none"}),
             dcc.Tabs(

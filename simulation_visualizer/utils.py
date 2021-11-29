@@ -4,11 +4,12 @@ import os
 from configparser import ConfigParser
 from contextlib import contextmanager
 from functools import wraps
+from itertools import groupby
 from json import loads
 from pathlib import Path
 from socket import gethostname
 from time import time
-from typing import Callable, Dict, List
+from typing import Any, Callable, Dict, Iterable, List
 
 import dash
 from pbs_wrapper.settings import CONFIG_DIR, MODULE_DIR
@@ -95,8 +96,18 @@ def get_python() -> Path:
     return p
 
 
-class Context:
+class DifferentFileError(Exception):
+    """Raised when `mode=merge` and files have different headers."""
 
+    ...
+
+
+def all_equal(iterable: Iterable[Any]) -> bool:
+    g = groupby(iterable)
+    return next(g, True) and not next(g, False)
+
+
+class Context:
     def __init__(self) -> None:
         self.triggered = dash.callback_context.triggered
         # e.g.: [{'prop_id': 'add-button.n_clicks', 'value': 1}]

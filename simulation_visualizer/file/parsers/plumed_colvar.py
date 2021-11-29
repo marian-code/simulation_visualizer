@@ -2,16 +2,17 @@ import re
 from typing import IO, TYPE_CHECKING, List, Optional, Tuple
 
 import pandas as pd
-from simulation_visualizer.parser import FileParser
+from simulation_visualizer.file.parser_meta import FileParser
 
 if TYPE_CHECKING:
-    from simulation_visualizer.parser import SUGGEST
+    from simulation_visualizer.file.parser_meta import SUGGEST
 
 
 class PlumedMetaDParser(FileParser):
 
     name = "Plumed-COLVAR"
     header = re.compile(r"#!\s*FIELDS\s*", re.I)
+    expected_filename = "COLVAR"
     description = (
         "Extracts data from PLUMED COLVAR file. The file is rather easy to "
         "parse. First column contains time and the successive ones contain "

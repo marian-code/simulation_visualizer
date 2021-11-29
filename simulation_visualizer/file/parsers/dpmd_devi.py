@@ -2,14 +2,15 @@ import re
 from typing import IO, TYPE_CHECKING, List, Optional, Tuple
 
 import pandas as pd
-from simulation_visualizer.parser import FileParser
+from simulation_visualizer.file.parser_meta import FileParser
 
 if TYPE_CHECKING:
-    from simulation_visualizer.parser import SUGGEST
+    from simulation_visualizer.file.parser_meta import SUGGEST
 
 class DeepMDModelDeviationParserV1(FileParser):
 
     name = "DeepMD-model_deviation-v1"
+    expected_filename = "model.devi"
     header = re.compile(
         r"#\s*step\s*max_devi_e\s*min_devi_e\s*avg_devi_e\s*max_devi_f\s*"
         r"min_devi_f\s*avg_devi_f", re.I
