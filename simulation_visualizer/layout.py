@@ -4,14 +4,20 @@ from dash import dcc
 from dash import html
 from dash.dash_table import DataTable
 from dash_extensions import Download
+import dash_bootstrap_components as dbc
 
 from simulation_visualizer.file import DataExtractor
 from simulation_visualizer.text import PLUGINS_INTRO, URL_SHARING, USAGE
 from pbs_wrapper.settings import TEMPLATE
 from simulation_visualizer.utils import DEFAULT_COL_NAMES
 
-#DEFAULT_COL_NAMES = [""]
-PARSERS = {str(p.name): p.description for p in DataExtractor("", "", "").parsers}
+PARSERS = {str(p.name): p.description for p in DataExtractor([""], [""], "").parsers}
+TOOLTIP_STYLE = {
+    "background-color": "white",
+    "border": "2px solid dodgerblue",
+    "border-radius": "10px",
+    "padding": "5px",
+}
 
 
 def serve_layout():
@@ -46,6 +52,12 @@ def serve_layout():
         # * select file and server controls will be dynamically added here
         html.Div(id="show-path"),
         html.Button(id="submit-button", n_clicks=0, children="Submit"),
+        dbc.Tooltip(
+            "If you have 2 or more files, select merge/parallel mode in "
+            "the graph controls menu before submiting.",
+            target="submit-button",
+            style=TOOLTIP_STYLE,
+        ),
         html.Button(id="add-button", n_clicks=0, children="Add host"),
         html.Button(id="remove-button", n_clicks=0, children="Remove host"),
         html.Div(id="show-filesize"),
@@ -67,6 +79,12 @@ def serve_layout():
                             value="2D",
                             labelStyle={"display": "inline-block"},
                         ),
+                        dbc.Tooltip(
+                            "series options add a slider that will represent another "
+                            "dimension.",
+                            target="dimensionality-state",
+                            style=TOOLTIP_STYLE,
+                        ),
                         dcc.RadioItems(
                             id="file-merge",
                             options=[
@@ -76,6 +94,14 @@ def serve_layout():
                             value="parallel",
                             labelStyle={"display": "inline-block"},
                             style={"display": "none"},
+                        ),
+                        dbc.Tooltip(
+                            "If you change mode you must click submit again. Merge "
+                            "mode requires same files and data from each one is ploted "
+                            "with different color. Parallel mode can have files with "
+                            "different columns which will be combined into one dataset",
+                            target="file-merge",
+                            style=TOOLTIP_STYLE,
                         ),
                         html.Label("Select x axis"),
                         dcc.Loading(

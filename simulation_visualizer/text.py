@@ -16,7 +16,6 @@ URL_SHARING = (
     "specified file and plot it with saved parameters."
 )
 
-# TODO update for more files
 USAGE = [
     "The dasboard basic usage is this:",
     html.Br(),
@@ -28,17 +27,28 @@ USAGE = [
     (
         "2. Next select the path to file on that server. The paths on remote "
         "server are auto-suggested. The suggestions should appear automatically "
-        "and if not you can display them with arrow-down key on keyboard. The "
-        "suggeestion dropdown menu might be too narrow for long paths in chromium "
-        "based browsers, unfortunatelly, nothing can be done with that from the "
-        "app side."
+        "and if not you can display them with arrow-down key on keyboard or with "
+        "a click of mouse button to the field. The suggeestion dropdown menu might be "
+        "too narrow for long paths in chromium based browsers, unfortunatelly, "
+        "nothing can be done with that from the app side. There is also a button "
+        "to add host(s). This will create an entry fields same as the previous in "
+        "which you can input another host and corresponding file. This way you can "
+        "plot multiple files at once combined. Notice also that with more than 2 files "
+        "new merge options will appear in the Graph Controls menu."
     ),
     html.Br(),
     (
-        "3. After this click on the submit button and availabele data column "
+        "3. After this click on the submit button and available data column "
         "labels will be loaded. Note that once data column labels are loaded "
         "and you wish to plot another file of same type, there is no need to "
-        "click submit button again. It serves only to read data column labels."
+        "click submit button again. It serves only to read data column labels. Before "
+        "submiting you should also select file mode - merge or parallel. Merge plots "
+        "more files into one graph each with different color. Paralel merges data and "
+        "collects all available columns from files. Merge is essentialy for ploting "
+        "more same type files and parallel is for different files with equivalent "
+        "number of rows. You should select mode before clicking the submit button, "
+        "because this controls how will the file columns be loaded. If you chage mode "
+        "you must re-submit."
     ),
     html.Br(),
     (
