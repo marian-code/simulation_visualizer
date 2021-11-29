@@ -220,3 +220,5 @@ sudo service apache2 reload
 - add progressbar when loading large files
 - clearer error messages showing as detailed report as possible
 - repair server sometimes spontaneously reloading
+- support diferent file save steps in parallel dataframe merge mode
+- implement every n-th row save and plot
