@@ -29,8 +29,8 @@ log = logging.getLogger(__name__)
 )
 def pbs_updater(cols: List[str], tab_id: str, *args):
 
-    if tab_id != "qstat-tab":
-        raise PreventUpdate
+    #if tab_id != "qstat-tab":
+    #    raise PreventUpdate
 
     log.info(f"got cols for qstat: {cols}")
 

@@ -2,8 +2,10 @@ import logging
 from .utils import input_parser, set_root
 from pathlib import Path
 
+from .utils import input_parser, set_root
 
 SERVER_HOST = "0.0.0.0"
+PKG_ROOT = Path(__file__).parent
 
 
 def main():
@@ -24,21 +26,24 @@ def main():
 
     logging.basicConfig(
         handlers=[
-            logging.FileHandler(filename="logs/sim_visualizer.log", mode="w"),
+            logging.FileHandler(
+                filename=PKG_ROOT / "logs" / "sim_visualizer.log", mode="w"
+            ),
             logging.StreamHandler(),
         ],
         level=log_level,
-        format="[%(asctime)s] %(levelname)-7s %(name)-53s %(message)s",
+        format="[%(asctime)s] %(levelname)-7s %(name)-46s|--> %(message)s",
     )
 
     # delete old suggestiion server logs
     logging.getLogger(__name__).info("removing old suggestion server logs")
-    for p in (Path(__file__).parent / "logs").glob("suggestion_server*"):
+    for p in (PKG_ROOT / "logs").glob("suggestion_server*"):
         p.unlink()
 
     set_root("")
 
     from .visualize import app
+
     app.run_server(
         debug=True,
         host=SERVER_HOST,

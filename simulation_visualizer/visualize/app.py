@@ -10,6 +10,8 @@ from simulation_visualizer.version import __version__
 log = logging.getLogger(__name__)
 
 EXTERNAL_STYLESHEETS = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
+#import dash_bootstrap_components as dbc
+#EXTERNAL_STYLESHEETS = [dbc.themes.COSMO]
 USER_LIST = get_auth()
 # expected address is: https://simulate.duckdns.org.visualize
 APACHE_URL_SUBDIR = get_root()
