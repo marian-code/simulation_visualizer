@@ -84,7 +84,10 @@ class DataExtractor:
                 return pd.concat(data)
 
             elif mode == "parallel":
-                return pd.concat([d.reindex(data[0].index) for d in data], axis=1)
+                df = pd.concat([d.reindex(data[0].index) for d in data], axis=1)
+                # grouping same columns taking max value, if more files are loaded
+                # it happens that some have same named columns
+                return df.groupby(level=0, axis=1).max()
 
     def header(
         self, *, mode: Literal["merge", "parallel"]

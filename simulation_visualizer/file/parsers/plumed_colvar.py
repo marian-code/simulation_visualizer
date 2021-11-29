@@ -48,6 +48,7 @@ class PlumedMetaDParser(FileParser):
 
         return df
 
+
 if __name__ == "__main__":
 
     # p = "/home/rynik/Raid/dizertacka/train_Si/ge_DPMD/metad/cd/COLVAR"
