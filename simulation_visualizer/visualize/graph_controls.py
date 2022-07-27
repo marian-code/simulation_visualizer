@@ -5,8 +5,12 @@ import dash
 from dash.dependencies import ALL, Input, Output, State
 from dash.exceptions import PreventUpdate
 from simulation_visualizer.file import DataExtractor
-from simulation_visualizer.utils import (Context, callback_info, get_file_size,
-                                         sizeof_fmt)
+from simulation_visualizer.utils import (
+    Context,
+    callback_info,
+    get_file_size,
+    sizeof_fmt,
+)
 
 from .app import app
 from .url import parse_url
@@ -22,6 +26,18 @@ if TYPE_CHECKING:
 
 # for some reason this is not encompased by simulation_visualizer logger by default
 log = logging.getLogger(__name__)
+
+
+def construct_error_msg(paths: List[str], hosts: List[str], e: Exception) -> str:
+    files = ", ".join([f"{h}@{p}" for h, p in zip(hosts, paths)])
+    plural = ("", "s", "does", "it") if len(hosts) == 1 else ("s", "", "do", "them")
+    msg = (
+        f"File{plural[0]}: {files} {plural[2]} not exist. "
+        f"Or point{plural[1]} to dir{plural[0]}, "
+        f"or you have insufficient permissions to read {plural[3]}. "
+        f"Error: {e}"
+    )
+    return msg
 
 
 # TODO split this monstrosity!
@@ -59,8 +75,8 @@ def update_axis_select(
     _,
     url: str,
     session_id: str,
-    host: List[str],
-    path: List[str],
+    hosts: List[str],
+    paths: List[str],
     addressbar_sw: bool,
     plot_clicks: int,
     file_merge: Literal["merge", "parallel"],
@@ -75,7 +91,7 @@ def update_axis_select(
     List[str],
     List[str],
     bool,
-    int,
+    Literal["2D", "2D-series", "3D", "3D-series"],
     int,
 ]:
     context = Context()
@@ -90,22 +106,20 @@ def update_axis_select(
     if context.id == "url-path" and not addressbar_sw:
         raise PreventUpdate()
     elif context.id == "url-path" and addressbar_sw:
-        host, path, x_sel, y_sel, z_sel, t_sel, dim = parse_url(url)
+        hosts, paths, x_sel, y_sel, z_sel, t_sel, dim = parse_url(url)
         addressbar_sw = False
 
     try:
-        data = DataExtractor(path, host, session_id).header(mode=file_merge)
-    except FileNotFoundError:
-        msg = (
-            "File does not exist or path points to dir or you "
-            "have insufficient permissions to read it"
-        )
+        data = DataExtractor(paths, hosts, session_id).header(mode=file_merge)
+    except FileNotFoundError as e:
+        msg = construct_error_msg(paths, hosts, e)
         log.warning(msg)
-        return ([dash.no_update] * 4, *[dash.no_update] * 11)  # raise PreventUpdate(msg)
+        NO = [dash.no_update]
+        return (NO * 4, *(NO * 4), msg, {"color": "red"}, hosts, paths, *(NO * 3))
     log.debug(f"got axis options: {data}")
 
-    byte_size = get_file_size(path, host)
-    if len(host) == 1:
+    byte_size = get_file_size(paths, hosts)
+    if len(hosts) == 1:
         filesize_msg = f"File size is: {sizeof_fmt(byte_size)}"
     else:
         filesize_msg = f"Combined size of all files is: {sizeof_fmt(byte_size)}"
@@ -116,17 +130,18 @@ def update_axis_select(
     log.info(filesize_msg)
 
     if not isinstance(data, Exception):
-        labels, indices = data
-        x_select = labels[indices["x"][0]]  # first data column
-        y_select = [labels[i] for i in indices["y"]]  # second data column
-        z_select = [labels[i] for i in indices["z"]]  # third data colum
-        t_select = [labels[i] for i in indices["t"]]  # third data colum
-        options = [{"label": lab, "value": lab} for lab in labels]
+        columns, indices = data
+        x_select = columns[indices["x"][0]]  # first data column
+        y_select = [columns[i] for i in indices["y"]]  # second data column
+        z_select = [columns[i] for i in indices["z"]]  # third data colum
+        t_select = [columns[i] for i in indices["t"]]  # fourth data colum
+        options = [{"label": col, "value": col} for col in columns]
         style = {}
     else:
         x_select = ""
         y_select = [""]
         z_select = [""]
+        t_select = [""]
         filesize_msg = str(data)
         options = []
         style = {"color": "red"}
@@ -142,11 +157,32 @@ def update_axis_select(
             plot_clicks = dash.no_update
     else:
         # must be at least of length 1, and upon init it is 0
-        host = [dash.no_update] * max(len(host), 1)
-        path = [dash.no_update] * max(len(host), 1)
+        hosts = [dash.no_update] * max(len(hosts), 1)
+        paths = [dash.no_update] * max(len(hosts), 1)
         dim = dash.no_update
         addressbar_sw = dash.no_update
         plot_clicks = dash.no_update
+
+    print("---------------------------------------------------------------------------")
+    from pprint import pprint
+
+    pprint(
+        (
+            [options] * 4,
+            x_select,
+            y_select,
+            z_select,
+            t_select,
+            filesize_msg,
+            style,
+            hosts,
+            paths,
+            addressbar_sw,
+            dim,
+            plot_clicks,
+        )
+    )
+    print("---------------------------------------------------------------------------")
 
     return (
         [options] * 4,
@@ -156,8 +192,8 @@ def update_axis_select(
         t_select,
         filesize_msg,
         style,
-        host,
-        path,
+        hosts,
+        paths,
         addressbar_sw,
         dim,
         plot_clicks,
@@ -179,7 +215,7 @@ def update_axis_select(
     prevent_initial_call=True,
 )
 def toggle_z_axis(
-    toggle_value: str,
+    toggle_value: Literal["2D", "2D-series", "3D", "3D-series"],
 ) -> Tuple[bool, "_DS", "_DS", "_DS", "_DS", "_DS", "_DS", "_LDS"]:
 
     if toggle_value.startswith("2D"):

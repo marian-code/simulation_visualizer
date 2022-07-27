@@ -5,6 +5,7 @@ from pathlib import Path
 from socket import gethostname
 from tempfile import TemporaryDirectory
 from typing import IO, TYPE_CHECKING, List, Optional, Tuple
+from io import SEEK_END
 
 from ssh_utilities import Connection
 
@@ -86,22 +87,38 @@ class FileParser(metaclass=ParserMount):
                 pass  # this is a ontext manager requirement
         else:
             if copy_method:
-                with Connection(host, local=local, quiet=True) as c:
+                with Connection(host, local=local, allow_agent=True, quiet=True) as c:
                     with TemporaryDirectory() as td:
                         c.shutil.copy(path, td, direction="get")
                         with (Path(td) / Path(path).name).open("r") as fileobj:
                             try:
                                 yield fileobj
                             finally:
-                                pass  # this is a ontext manager requirement
+                                pass  # this is a context manager requirement
             else:
                 log.debug("opening new file object")
-                with Connection(host, local=local, quiet=True) as c:
+                with Connection(host, local=local, allow_agent=True, quiet=True) as c:
                     with c.builtins.open(path, "r") as fileobj:
                         try:
                             yield fileobj
                         finally:
                             pass  # this is a ontext manager requirement
+
+    @classmethod
+    def get_n_lines(
+        cls,
+        path: str,
+        host: str,
+        fileobj: Optional[IO] = None,
+        n_from_end: Optional[int] = None
+    ) -> int:
+
+        with cls._file_opener(path, host, fileobj) as f:
+            f.seek(0, SEEK_END)
+            # find n_from_end line
+            # size of line = len(line.encode("utf-8"))
+            # open connection and get size of file on disk os.path.getsize(f)
+            # appprox_n_lines = file_size / line_size
 
     @final
     @classmethod
@@ -123,16 +140,18 @@ class FileParser(metaclass=ParserMount):
         long for load
         """
         with cls._file_opener(host, path) as f:
-            line = f.readline()
 
-            if cls.header.match(line):
-                log.info(f"parser {cls} can handle {Path(path).name} file type")
-                return True
-            else:
-                log.warning(f"parser {cls} cannot handle {Path(path).name} file type")
-                return False
+            #look for header on the first 100 lines
+            for _ in range(100):
+                line = f.readline()
 
-    # TODO serch for column with name "time" or "step"
+                if cls.header.match(line):
+                    log.info(f"parser {cls} can handle {Path(path).name} file type")
+                    return True
+
+            log.warning(f"parser {cls} cannot handle {Path(path).name} file type")
+            return False
+
     @staticmethod
     def _suggest_axis() -> "SUGGEST":
         """Get default data column index for each axis.

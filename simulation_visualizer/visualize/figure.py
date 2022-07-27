@@ -37,6 +37,8 @@ log = logging.getLogger(__name__)
         State("plot-type", "value"),
         State("download-type", "value"),
         State("file-merge", "value"),
+        State("subsample-interval", "value"),
+        State("percent-part", "value"),
     ],
     prevent_initial_call=True,
 )
@@ -49,15 +51,18 @@ def download_data(
     t_select: str,
     host: List[str],
     path: List[str],
-    dimension: Literal["2D", "3D"],
+    dimension: Literal["2D", "2D-series", "3D", "3D-series"],
     plot_type: str,
     download_type: str,
     file_merge: Literal["merge", "parallel"],
+    subsample_interval: int,
+    percent_part: Tuple[int, int],
 ) -> Dict[str, str]:
 
     log.info(f"requested download type is: {download_type}")
 
-    df = df_cache(path, host, session_id)
+    df = df_cache(path, host, session_id, file_merge)
+    df = subsample(df, *percent_part, subsample_interval)
 
     if download_type == "csv":
         return {
@@ -80,7 +85,7 @@ def download_data(
         )
         return {
             "content": fig.to_html(include_plotlyjs="cdn"),
-            "filename": "data.html",
+            "filename": f"data_{'_'.join(y_select)}.html",
             "mimetype": "text/html",
         }
     else:
@@ -104,6 +109,8 @@ def download_data(
         State("dimensionality-state", "value"),
         State("plot-type", "value"),
         State("file-merge", "value"),
+        State("subsample-interval", "value"),
+        State("percent-part", "value"),
     ],
     prevent_initial_call=True,
 )
@@ -119,6 +126,8 @@ def update_figure(
     dimension: Literal["2D", "3D"],
     plot_type: str,
     file_merge: Literal["merge", "parallel"],
+    subsample_interval: int,
+    percent_part: Tuple[int, int],
 ) -> Tuple[Any, Any, str]:
 
     log.info(
@@ -131,6 +140,7 @@ def update_figure(
         raise PreventUpdate()
 
     df = df_cache(path, host, session_id, file_merge)
+    df = subsample(df, *percent_part, subsample_interval)
 
     if not isinstance(df, Exception):
 
@@ -195,3 +205,14 @@ def get_fig(
         fig = plot(df, **kwargs)
 
     return fig
+
+
+def subsample(
+    df: "DataFrame", percent_min: int, percent_max: int, subsample_interval: int
+) -> "DataFrame":
+
+    log.debug(f"taking {percent_min}% - {percent_max}% iterval from data")
+    log.debug(f"subsampling data and taking every {subsample_interval} frame")
+    smin = int(df.shape[0] / 100 * percent_min)
+    smax = int(df.shape[0] / 100 * percent_max)
+    return df.iloc[smin:smax:subsample_interval]

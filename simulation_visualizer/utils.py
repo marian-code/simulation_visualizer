@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from functools import wraps
 from itertools import groupby
 from json import loads
+from json.decoder import JSONDecodeError
 from pathlib import Path
 from socket import gethostname
 from time import time
@@ -17,13 +18,20 @@ from ssh_utilities import Connection
 
 log = logging.getLogger(__name__)
 
+TOOLTIP_STYLE = {
+    "background-color": "white",
+    "border": "2px solid dodgerblue",
+    "border-radius": "10px",
+    "padding": "5px",
+}
+
 
 def get_file_size(paths: List[str], hosts: List[str]) -> float:
     sizes = 0
     # group files on same host to make filesize check more efficient
     for host, group in groupby(zip(hosts, paths), lambda x: x[0]):
         local = True if host == gethostname().lower() else False
-        with Connection(host, local=local, quiet=True) as c:
+        with Connection(host, local=local, quiet=True, allow_agent=True) as c:
             for _, path in group:
                 sizes += c.os.stat(path).st_size
 
@@ -38,14 +46,16 @@ def sizeof_fmt(num: float, suffix: str = "B") -> str:
     return "%.1f%s%s" % (num, "Y", suffix)
 
 
-@contextmanager
-def timeit(what: str):
-    t0 = time()
-    try:
-        yield
-    finally:
-        log.debug(f"{what} execution time: {time() - t0:.2f}s")
-
+def timeit(what: str) -> Callable:
+    def timing_decorator(function: Callable) -> Callable:
+        @wraps(function)
+        def decorator(*args, **kwargs):
+            t0 = time()
+            result = function(*args, **kwargs)
+            log.debug(f"{what} execution time: {time() - t0:.2f}s")
+            return result
+        return decorator
+    return timing_decorator
 
 def input_parser() -> Dict[str, int]:
 
@@ -81,7 +91,6 @@ def input_parser() -> Dict[str, int]:
 
 
 def get_auth() -> Dict[str, str]:
-
     text = (Path(__file__).parent / "data/users.txt").read_text().splitlines()
     return {line.split(":")[0]: line.split(":")[1] for line in text}
 
@@ -123,6 +132,12 @@ class Context:
         self.triggered = dash.callback_context.triggered
         # e.g.: [{'prop_id': 'add-button.n_clicks', 'value': 1}]
         self.id: str = self.triggered[0]["prop_id"].split(".")[0]
+        try:
+            did = loads(self.id)
+        except JSONDecodeError:
+            did = None
+
+        self.dict_id: dict = did
 
 
 def callback_info(function: Callable) -> Callable:
@@ -155,7 +170,10 @@ def get_qstat_col_names():
         config_file = None
         config.read(MODULE_DIR / "config" / ini)
 
-    config[template].pop("user_assigned_id")
+    try:
+        config[template].pop("user_assigned_id")
+    except KeyError:
+        pass
 
     return list(config[template].keys())
 

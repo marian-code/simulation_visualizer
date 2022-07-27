@@ -9,15 +9,9 @@ import dash_bootstrap_components as dbc
 from simulation_visualizer.file import DataExtractor
 from simulation_visualizer.text import PLUGINS_INTRO, URL_SHARING, USAGE
 from pbs_wrapper.settings import TEMPLATE
-from simulation_visualizer.utils import DEFAULT_COL_NAMES
+from simulation_visualizer.utils import DEFAULT_COL_NAMES, TOOLTIP_STYLE
 
 PARSERS = {str(p.name): p.description for p in DataExtractor([""], [""], "").parsers}
-TOOLTIP_STYLE = {
-    "background-color": "white",
-    "border": "2px solid dodgerblue",
-    "border-radius": "10px",
-    "padding": "5px",
-}
 
 
 def serve_layout():
@@ -59,15 +53,18 @@ def serve_layout():
             style=TOOLTIP_STYLE,
         ),
         html.Button(id="add-button", n_clicks=0, children="Add host"),
+        html.Button(id="replicate-button", n_clicks=0, children="Duplicate host"),
         html.Button(id="remove-button", n_clicks=0, children="Remove host"),
+        # html.Button(id="test-button", n_clicks=0, children="Test button"),
+        # html.Button(id="test-button1", n_clicks=0, children="Test button1"),
         html.Div(id="show-filesize"),
         html.Hr(),
-        html.H3(children="Graph controls"),
         html.Div(
             [
                 # * left column with graph controls
                 html.Div(
-                    [
+                    children=[
+                        html.H3(children="Graph controls"),
                         dcc.RadioItems(
                             id="dimensionality-state",
                             options=[
@@ -78,6 +75,36 @@ def serve_layout():
                             ],
                             value="2D",
                             labelStyle={"display": "inline-block"},
+                        ),
+                        dcc.Slider(
+                            id="subsample-interval",
+                            min=1,
+                            max=100,
+                            value=1,
+                            step=1,
+                            marks={1: "1", 50: "50-th", 100: "100-th"},
+                            tooltip={"placement": "bottom", "always_visible": True},
+                        ),
+                        dbc.Tooltip(
+                            "Sub-sampling interval. Usefull for large datasets. E.g.: "
+                            "10 means that only every tenth frame will be selected for "
+                            "display",
+                            target="subsample-interval",
+                            style=TOOLTIP_STYLE,
+                        ),
+                        dcc.RangeSlider(
+                            id="percent-part",
+                            min=0,
+                            max=100,
+                            value=(0, 100),
+                            step=1,
+                            marks={0: "0%", 50: "50%", 100: "100%"},
+                            tooltip={"placement": "bottom", "always_visible": True},
+                        ),
+                        dbc.Tooltip(
+                            "Take only part of tha dataset, specified in percent.",
+                            target="percent-part",
+                            style=TOOLTIP_STYLE,
                         ),
                         dbc.Tooltip(
                             "series options add a slider that will represent another "
@@ -214,10 +241,10 @@ def serve_layout():
                             children=[Download(id="download")],
                         ),
                     ],
-                    className="one-third column",
+                    className="three columns",
                 ),
                 # * right column with graph and progressbar
-                html.Div(plot, className="two-thirds column"),
+                html.Div(plot, className="nine columns"),
             ],
             className="row",
         ),
@@ -226,6 +253,33 @@ def serve_layout():
             children=f"Currently available parsers are: {', '.join(PARSERS.keys())}"
         ),
         html.Div(id="addressbar-sw", children=True, style={"display": "none"}),
+        dbc.Row(
+            [
+                html.Div(
+                    [
+                        html.Label("Ovito sftp user:"),
+                        dcc.Input(
+                            id="sftp-user",
+                            type="text",
+                            value="rynik",
+                        ),
+                    ],
+                    className="two columns",
+                ),
+                html.Div(
+                    [
+                        html.Label("Ovito sftp traj file:"),
+                        dcc.Input(
+                            id="sftp-file",
+                            type="text",
+                            value="trajectory.lammps",
+                        ),
+                    ],
+                    className="two columns",
+                ),
+            ],
+            className="g-0",
+        ),
     ]
 
     tab_2 = [
@@ -285,7 +339,10 @@ def serve_layout():
 
     tab_4 = html.Div(
         children=[
-            html.P(children="Table is autoamtically updated every 5 seconds."),
+            html.P(
+                id="qstat-update-message",
+                children="Table is automatically updated every 5 seconds.",
+            ),
             dcc.Interval(id="pbs-update-timer", interval=5000),
             DataTable(
                 id="pbs-table",
@@ -311,7 +368,36 @@ def serve_layout():
                 value=DEFAULT_COL_NAMES,
                 multi=True,
             ),
-        ]
+            html.Div(
+                children=[
+                    html.Div(
+                        children=[
+                            html.P(children="Select update interval for qstat:"),
+                            dcc.Slider(
+                                "qstat-interval",
+                                min=1,
+                                max=60,
+                                step=1,
+                                value=5,
+                                marks={
+                                    1: "1s",
+                                    5: "5s",
+                                    10: "10s",
+                                    30: "30s",
+                                    45: "45s",
+                                    60: "60s",
+                                },
+                                tooltip={"placement": "bottom", "always_visible": True},
+                            ),
+                        ],
+                        className="six columns",
+                    ),
+                    html.Div(
+                        className="six columns",
+                    ),
+                ]
+            ),
+        ],
     )
 
     return html.Div(
@@ -361,5 +447,6 @@ def serve_layout():
                 parent_className="custom-tabs",
                 className="custom-tabs-container",
             ),
+            html.Div(id="proxy-components", style={"display": "none"}),
         ]
     )

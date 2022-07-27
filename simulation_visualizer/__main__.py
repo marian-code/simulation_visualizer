@@ -1,5 +1,4 @@
 import logging
-from .utils import input_parser, set_root
 from pathlib import Path
 
 from .utils import input_parser, set_root
@@ -23,6 +22,11 @@ def main():
     logging.getLogger("paramiko").setLevel(lib_level)
     logging.getLogger("ssh_utilities").setLevel(lib_level)
     logging.getLogger("watchdog").setLevel(lib_level)
+
+    # ! only for debugging
+    #logging.getLogger("simulation_visualizer.suggestion_server").setLevel(lib_level)
+    #logging.getLogger("simulation_visualizer.path_completition").setLevel(lib_level)
+    #logging.getLogger("simulation_visualizer.parser").setLevel(lib_level)
 
     logging.basicConfig(
         handlers=[

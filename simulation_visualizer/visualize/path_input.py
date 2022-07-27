@@ -1,14 +1,16 @@
 import logging
+from os.path import dirname
 from pathlib import Path
 from socket import gethostname
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import dash
+import dash_bootstrap_components as dbc
 from dash import dcc, html
 from dash.dependencies import ALL, MATCH, Input, Output, State
 from dash_extensions.enrich import ServersideOutput
 from simulation_visualizer.path_completition import Suggest
-from simulation_visualizer.utils import Context
+from simulation_visualizer.utils import TOOLTIP_STYLE, Context
 from ssh_utilities import Connection
 
 from .app import app
@@ -38,21 +40,30 @@ SUGGESTION_SOCKET = "/tmp/user-{}-id-{}-suggestion_server"
         Output("file-merge", "style"),
         Output("file-merge", "value"),
     ],
-    [Input("add-button", "n_clicks"), Input("remove-button", "n_clicks")],
+    [
+        Input("add-button", "n_clicks"),
+        Input("replicate-button", "n_clicks"),
+        Input("remove-button", "n_clicks"),
+    ],
     State("control-tab", "children"),
     prevent_initial_call=False,
 )
-def change_host(n_clicks: int, _, tab: List[Any]) -> Tuple[List[Any], Dict[str, str]]:
+def change_host(n_clicks0: int, n_clicks1: int, _, tab: List[Any]) -> Tuple[List[Any], Dict[str, str]]:
     event_id = Context().id
+    n_clicks = sum([n_clicks0, n_clicks1])
 
     if event_id in ("add-button", ""):
         shift = 1
         tab = add_host(n_clicks, tab)
+    elif event_id == "replicate-button":
+        shift = 1
+        host, path = get_host_and_path(tab)
+        tab = add_host(n_clicks, tab, host=host, path=path)
     else:
         shift = -1
         tab = remove_host(tab)
 
-    # TODO this is a verid shit after first add we still have one path selector
+    # TODO this is a weird shit after first add we still have one path selector
     # TODO and after first remove the number of found selectors does not change too
     if get_n_selectors(tab)[0] + shift > 1:
         visible = {"display": "block"}
@@ -64,8 +75,14 @@ def change_host(n_clicks: int, _, tab: List[Any]) -> Tuple[List[Any], Dict[str, 
     return tab, visible, merge_setting
 
 
-def add_host(n_clicks: int, tab: List[Any]) -> html.Div:
-    selector = html.Div(
+def add_host(
+    n_clicks: int,
+    tab: List[Any],
+    host: str = HOSTS[0]["label"],
+    path: Optional[str] = None,
+) -> html.Div:
+
+    selector = dbc.Row(
         [
             html.Div(
                 [
@@ -73,7 +90,7 @@ def add_host(n_clicks: int, tab: List[Any]) -> html.Div:
                     dcc.Dropdown(
                         id={"type": "input-host", "index": n_clicks},
                         options=HOSTS,
-                        value="kohn",
+                        value=host,
                     ),
                 ],
                 className="two columns",
@@ -87,9 +104,27 @@ def add_host(n_clicks: int, tab: List[Any]) -> html.Div:
                         placeholder="/full/path/to/file",
                         style={"width": "100%"},
                         list=f"list-paths-{n_clicks}",
+                        value=path,
                     ),
                 ],
-                className="nine columns",
+                className="eight columns",
+            ),
+            html.Div(
+                [
+                    html.Label("Ovito"),
+                    dcc.Clipboard(
+                        id={"type": "clipboard", "index": n_clicks},
+                        style={"fontSize": 20},
+                    ),
+                    dbc.Tooltip(
+                        "Copy sftp address for use in Ovito. "
+                        "Set username and filename at the bottom of the page",
+                        target={"type": "clipboard", "index": n_clicks},
+                        style=TOOLTIP_STYLE,
+                    ),
+                ],
+                className="one column",
+                style={"margin-right": "2px", "margin-left": "5px"},
             ),
             dcc.Store(
                 id={"type": "path-store", "index": n_clicks},
@@ -101,12 +136,30 @@ def add_host(n_clicks: int, tab: List[Any]) -> html.Div:
                 hidden=True,
             ),
         ],
-        className="row",
+        className="g-0",
         id=f"path-selector-{n_clicks}",
     )
 
     tab.insert(1, selector)
     return tab
+
+
+def get_host_and_path(tab: List[Any]) -> Tuple[str, Optional[str]]:
+
+    # This is suposed to fail if we are adding the first path selector
+    try:
+        host = tab[1]["props"]["children"][0]["props"]["children"][1]["props"]["value"]
+    except TypeError:
+        host = HOSTS[0]["label"]
+
+    # This also fails when adding the first path selector and
+    # when last path selector has no set path
+    try:
+        path = tab[1]["props"]["children"][1]["props"]["children"][1]["props"]["value"]
+    except (TypeError, KeyError):
+        path = None
+
+    return host, path
 
 
 def remove_host(tab: List[Any]) -> List[Any]:
@@ -201,3 +254,18 @@ def suggest_path(
         ],
         {"path": path, "host": host},
     )
+
+
+@app.callback(
+    Output({"type": "clipboard", "index": MATCH}, "content"),
+    Input({"type": "clipboard", "index": MATCH}, "n_clicks"),
+    [
+        State({"type": "input-host", "index": MATCH}, "value"),
+        State({"type": "input-path", "index": MATCH}, "value"),
+        State("sftp-user", "value"),
+        State("sftp-file", "value"),
+    ],
+    prevent_initial_call=True,
+)
+def copy2clipboard(_, host: str, path: str, user: str, traj_file: str) -> str:
+    return f"sftp://{user}@{host}{dirname(path)}/{traj_file}"

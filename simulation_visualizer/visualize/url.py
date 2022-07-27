@@ -8,9 +8,9 @@ from typing import List, Tuple, TYPE_CHECKING
 from dash.dependencies import ALL, Input, Output, State
 
 try:
-    from typing import TypedDict  # type: ignore
+    from typing import TypedDict, Literal  # type: ignore
 except ImportError:
-    from typing_extensions import TypedDict
+    from typing_extensions import TypedDict, Literal
 
 if TYPE_CHECKING:
     _HOST_DATA = TypedDict("_HOST_DATA", {"path": str, "host": str})
@@ -34,7 +34,7 @@ def update_url_select(
     y_select: List[str],
     z_select: List[str],
     t_select: List[str],
-    dim: str,
+    dim: Literal["2D", "2D-series", "3D", "3D-series"],
 ) -> List[str]:
 
     if x_select:
@@ -94,8 +94,9 @@ def parse_url(url: str):
 
     URL_NUM = r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d*"
     URL_STR = r".*?/visualize"
+    URL_LOC = r"localhost:\d+"
     # find string or ip address
-    URL = r"https?://(?:" + URL_NUM + r"|" + URL_STR + r")"
+    URL = r"https?://(?:" + URL_NUM + r"|" + URL_STR + r"|" + URL_LOC + r")"
     # string component that can contain special characters ending with question mark,
     # may or may not be present
     PATH_COMP = r"(?:(\S*?)\?|/)?"
@@ -139,6 +140,8 @@ def parse_url(url: str):
 
         log.debug(f"found in url: x:{x_select}, y:{y_select}, z:{z_select}")
         log.debug(f"dimension is: {dim}")
+        log.debug(f"parsed host: {host}")
+        log.debug(f"parsed filename: {filename}")
 
         if (dim.startswith("2D") and all((x_select, y_select))) or (
             dim.startswith("3D") and all((x_select, y_select, z_select))
@@ -154,6 +157,6 @@ def parse_url(url: str):
             log.warning("Could not parse all parameters from url")
 
         # split host and filenames  which are separated by delimiter '|'
-        host = host.split("|")
-        filename = filename.split("|")
-        return (host, filename, x_select, y_select, z_select, t_select, dim)
+        hosts = host.split("|")
+        filenames = filename.split("|")
+        return hosts, filenames, x_select, y_select, z_select, t_select, dim

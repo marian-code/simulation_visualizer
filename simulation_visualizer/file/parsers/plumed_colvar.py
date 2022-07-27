@@ -1,3 +1,4 @@
+from builtins import float
 import re
 from typing import IO, TYPE_CHECKING, List, Optional, Tuple
 
@@ -44,7 +45,7 @@ class PlumedMetaDParser(FileParser):
             f.seek(0)
 
             df = pd.read_table(f, sep=r"\s+", header=0, names=header,
-                               comment="#")
+                               comment="#", dtype=float)
 
         return df
 

@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING, Dict, List, Tuple, Union
 
 from ssh_utilities import Connection
 
-from simulation_visualizer.suggestion_server.client import \
-    connect_to_suggestion_server
+from simulation_visualizer.suggestion_server.client import connect_to_suggestion_server
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from ssh_utilities import LocalConnection, SSHConnection
+
     _CONN = Union[LocalConnection, SSHConnection]
 
 
@@ -44,13 +44,19 @@ class Completion:
         # open connection to host
         if not self._c:
             log.info(f"connecting to server {host}")
-            self._c = Connection(host.lower(), local=local, quiet=True)
+            self._c = Connection(
+                host.lower(), local=local, allow_agent=True, quiet=True
+            )
         # if host changed establish new connection
         elif self._c.server_name != host.upper():
-            log.info(f"changing connection from server: {self._c.server_name} "
-                     f"to {host.upper()}")
+            log.info(
+                f"changing connection from server: {self._c.server_name} "
+                f"to {host.upper()}"
+            )
             self._c.close()
-            self._c = Connection(host.lower(), local=local, quiet=True)
+            self._c = Connection(
+                host.lower(), local=local, allow_agent=True, quiet=True
+            )
 
         return self._c
 
@@ -84,7 +90,7 @@ class Completion:
                 log.debug(f"path is file, returning ...")
                 return str(path), [str(path)]
         except FileNotFoundError:
-            # this means that the last path component is not valid
+            # this means that the last path component is not valid
             # so we just discard it
             path = path.parent
 
@@ -135,8 +141,9 @@ class Suggest:
     def __init__(self, function_name: str):
         self.function = function_name
 
-    def __call__(self, host: str, filename: str, unique_socket_address: "Path"
-                 ) -> Tuple[str, List[str]]:
+    def __call__(
+        self, host: str, filename: str, unique_socket_address: "Path"
+    ) -> Tuple[str, List[str]]:
         """Proxy for autocompleter methods.
 
         Parameters
@@ -165,8 +172,7 @@ class Suggest:
         # first try to get the answer from suggestion server
         try:
             client = connect_to_suggestion_server(
-                log_level=logging.DEBUG,
-                unique_socket_address=unique_socket_address
+                log_level=logging.DEBUG, unique_socket_address=unique_socket_address
             )
         except TimeoutError:
             log.debug("switching to serverless suggestion engine")
@@ -179,8 +185,9 @@ class Suggest:
 
             # if suggestion server method fails, revert to direct mode
             except OSError as e:
-                log.warning(f"encountered exception when retrieving "
-                            f"data from server {e}")
+                log.warning(
+                    f"encountered exception when retrieving data from server {e}"
+                )
 
                 log.debug("switching to serverless suggestion engine")
                 result = getattr(Completion(), self.function, None)(**kwargs)
