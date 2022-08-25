@@ -8,14 +8,11 @@ from any servers defined in `~/.ssh/config file`. Currently supported formats ar
 - LAMMPS log file with custom thermo style without multiline
 - DeepMD-kit LAMMPS pair style model deviation output
 
-# Security
+# Example
 
-The application runs securely over https but the certificates are generated
-ad-hoc and sef-signed by Werkzeug so the app will appear as if its certificate
-has expired although it is valid. This is meant to be so for simplicity and
-will not be repaired! The app also requires login.
+![Alt Text](data/example_colvar.gif)
 
-# Deploy locally:
+# Installation
 
 * you have to generate file with user logins in data folder named `users.txt`.
 The format is one `username:password` on each line.
@@ -24,7 +21,7 @@ production mode
 
 ```bash
 # install
-pip install git+https://github.com/ftl-fmfi/simulation-visualizer.git
+pip install git+https://github.com/marian-code/simulation-visualizer.git
 # create password file
 cd path/to/simulation_visualizer
 cd data
@@ -33,13 +30,17 @@ echo user1:password1 >> users.txt
 echo user2:password2 >> users.txt
 ```
 
-now run debug server
+# Easy deployment:
+
+## Simple debug server with add-hoc generated or no certificates
+
 ```bash
 # run
 visualizer -vvvv -e & # for full debug mode, run over https and leave it running in the background
 ```
 
-or for simple production run:
+## Simple production run with self-signed certificates:
+
 ```bash
 cd data
 # create certificate files in data folder
@@ -48,37 +49,9 @@ openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 36
 gunicorn --certfile data/cert.pem --keyfile data/key.pem --bind 0.0.0.0:8050 visualize:server
 ```
 
-This option assumes that you have generated ssh keys for servers you will want
-to access.
+## Systemd service with self-signed certificates
 
-# Writing new parsers
-
-Writing new plugin to handle arbitrary data format is rather easy. One must follow
-few simple rules:
-* The parser must be self contained in one file
-* Parser class must inherit from [`FileParser`](https://github.com/ftl-fmfi/simulation-visualizer/blob/9b37c9382200df023bbd2e126b018ecd12319054/simulation_visualizer/parser.py#L51)
-base class which defines parser API and takes care of auto plugin loading through
-metaclass magic.
-* each parser must override `FileParser` abstract methods and optionally
-* New plugins can be added to running server which will auto-load them on the fly.
-* All parser methods must be class methods, the parser will not be instantiated!
-
-There is an [example file](simulation_visualizer/parsers/example_plugin.py) prepared for convenience which should help you
-write a plugin in no time. 
-
-
-# Example
-
-![Alt Text](data/example_colvar.gif)
-
-# systemd service
-
-There is a systemd service file prepared for you to run the app as a service. Just run
-script that comes preinstalled with the package:
-
-```bash
-visualizer-conf
-```
+There is a systemd service file prepared for you to run the app as a service.
 
 You have to create self signed certificates to run this app and output then to data
 directory.
@@ -86,6 +59,11 @@ directory.
 ```bash
 cd .../simulation_visualizer
 openssl req -x509 -newkey rsa:4096 -keyout data/key.pem -out data/cert.pem -days 365
+```
+Then just run script that comes preinstalled with the package:
+
+```bash
+visualizer-conf
 ```
 
 This will output reasonable service file configuration. Copy this into:
@@ -96,7 +74,17 @@ systemctl start sim_viasualizer
 systemctl enable sim_viasualizer
 ```
 
-# Run as apache2 wsgi app with certificates
+## Security in the above cases
+
+The application runs securely over https but the certificates are generated
+ad-hoc and sef-signed by Werkzeug so the app will appear as if its certificate
+has expired although it is valid. This is meant to be so for simplicity and
+will not be repaired! The app also requires login.
+
+This option assumes that you have generated ssh keys for servers you will want
+to access.
+
+# Production run as apache2 wsgi app with certificates
 
 ## Install
 
@@ -191,10 +179,26 @@ sudo a2ensite apache2_wsgi
 sudo service apache2 reload
 ```
 
-- configure log path, maybe in code!!!!
+# Writing new parsers
+
+Writing new plugin to handle arbitrary data format is rather easy. One must follow
+few simple rules:
+* The parser must be self contained in one file
+* Parser class must inherit from [`FileParser`](https://github.com//marian-code/simulation-visualizer/blob/9b37c9382200df023bbd2e126b018ecd12319054/simulation_visualizer/parser.py#L51)
+base class which defines parser API and takes care of auto plugin loading through
+metaclass magic.
+* each parser must override `FileParser` abstract methods and optionally
+* New plugins can be added to running server which will auto-load them on the fly.
+* All parser methods must be class methods, the parser will not be instantiated!
+
+There is an [example file](simulation_visualizer/parsers/example_plugin.py) prepared for convenience which should help you
+write a plugin in no time. 
+
 
 # TODO
 
 - add progressbar when loading large files
 - clearer error messages showing as detailed report as possible
 - repair server sometimes spontaneously reloading
+- configure log path, maybe in code!!!!
+
