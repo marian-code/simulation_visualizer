@@ -1,12 +1,3 @@
-<h2>
-  <a
-    target="_blank"
-    href="https://simulate.duckdns.org/visualize"
-  >
-    Try Me!
-  </a>
-</h2>
-
 # Simulation visualizer
 
 Has the ability to load and plot various data formats (depending on available plugins)
@@ -22,22 +13,9 @@ from any servers defined in `~/.ssh/config file`. Currently supported formats ar
 The application runs securely over https but the certificates are generated
 ad-hoc and sef-signed by Werkzeug so the app will appear as if its certificate
 has expired although it is valid. This is meant to be so for simplicity and
-will not be repaired! The app also requires login. As of now only admin
-specified users are allowed to login. The login credentials are your
-**...@fmph.uniba.sk** mail address and **password** is same as on **DEP2C**.
-# Deploy
+will not be repaired! The app also requires login.
 
-There are two options. You can use already running version which is hosted on
-[Dusanko](https://158.195.19.213:8050) this should be always up and running. It
-has defined keys for all available machines (Kohn, Hartree, Fock, Schrodinger,
-Landau, Aurel) The only problem you could possibly encounter is related to file
-access privilages. As the server runs on `Dusanko` it logs in as user `rynik` so
-this might stop the server from accessing some files. It happens sometimes mostly
-with files written by programs that where run through PBS job manager. This problem
-can simply be prevented by adding this line to PBS script: `#PBS -W umask=0022` or
-by changing privilages with `chmod`
-
-The second option is to deploy locally:
+# Deploy locally:
 
 * you have to generate file with user logins in data folder named `users.txt`.
 The format is one `username:password` on each line.
